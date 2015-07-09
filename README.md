@@ -49,7 +49,7 @@ all the JS code that made the project.
 
 	$bob = new Nether\OneScript\Builder([
 
-		'FinalForm' => str_replace('.php','',basename(__FILE__),
+		'FinalForm' => str_replace('.php','',basename(__FILE__)),
 		// write mylib.js.php as mylib.js to disk.
 
 		'ProjectRoot' => dirname(__FILE__),
