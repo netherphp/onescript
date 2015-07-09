@@ -60,7 +60,7 @@ all the JS code that made the project.
 		// these are files which may need to be loaded before and
 		// in this specific order, for the rest of the app to work.
 
-		'ModuleDirs' => [ 'plugins' ]
+		'ModuleDirs' => [ 'ext' ]
 		// these are the directories for added modules or plugins
 		// which should not depend on the order they are loaded.
 		// OneScript will sort them alphabetically.
