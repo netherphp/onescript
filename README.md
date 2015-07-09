@@ -79,8 +79,9 @@ website's theme file:
 
 	<script src="/share/mylib/mylib.<?php echo((!defined('DEV'))?('js'):('js.php')) ?>"></script>
 
-Every time I test my site on DEV I will get the updated source and an
-automatic build for production.
+Every time I test my site on DEV I will get the updated source and an automatic
+build for production. Once you are ready to bag and tag your release that updated
+.js file is just going to be there. Unless you are bad and didn't even test a change.
 
 # Securing
 
