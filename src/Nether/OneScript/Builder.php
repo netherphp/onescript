@@ -21,6 +21,8 @@ class Builder {
 
 		$this->Opt = new Nether\Object($opt,[
 
+			'Extension' => 'js',
+
 			'ProjectRoot' => '.',
 			// where we are looking for our files.
 
@@ -156,7 +158,7 @@ class Builder {
 		foreach($this->Opt->ModuleDirs as $dir) {
 			$files = array_merge(
 				$files,
-				glob("{$this->Opt->ProjectRoot}/src/{$dir}/*.js")
+				glob("{$this->Opt->ProjectRoot}/src/{$dir}/*.{$this->Opt->Extension}")
 			);
 		}
 
@@ -359,6 +361,10 @@ class Builder {
 	//*/
 
 		if(!$this->HasValidKey()) return $this;
+		if(!$this->HasFileChanged($source)) {
+			echo "// not writing to disk - output unchanged.\n\n";
+			return $this;
+		}
 
 		file_put_contents($this->Filepath,$source);
 		return $this;
@@ -380,6 +386,19 @@ class Builder {
 
 		// else a failure.
 		return false;
+	}
+
+	protected function
+	HasFileChanged($source) {
+
+		$outwithit = function($input) {
+			return preg_replace('/^@date .*?$/msi','',$input);
+		};
+
+		$old = md5($outwithit(file_get_contents($this->Filepath)));
+		$new = md5($outwithit($source));
+
+		return !($old === $new);
 	}
 
 }
