@@ -49,7 +49,7 @@ all the JS code that made the project.
 
 	$bob = new Nether\OneScript\Builder([
 
-		'FinalForm' => str_replace('.php','',basename(__FILE__),
+		'FinalForm' => str_replace('.php','',basename(__FILE__)),
 		// write mylib.js.php as mylib.js to disk.
 
 		'ProjectRoot' => dirname(__FILE__),
@@ -60,7 +60,7 @@ all the JS code that made the project.
 		// these are files which may need to be loaded before and
 		// in this specific order, for the rest of the app to work.
 
-		'ModuleDirs' => [ 'plugins' ]
+		'ModuleDirs' => [ 'ext' ]
 		// these are the directories for added modules or plugins
 		// which should not depend on the order they are loaded.
 		// OneScript will sort them alphabetically.
@@ -79,8 +79,9 @@ website's theme file:
 
 	<script src="/share/mylib/mylib.<?php echo((!defined('DEV'))?('js'):('js.php')) ?>"></script>
 
-Every time I test my site on DEV I will get the updated source and an
-automatic build for production.
+Every time I test my site on DEV I will get the updated source and an automatic
+build for production. Once you are ready to bag and tag your release that updated
+.js file is just going to be there. Unless you are bad and didn't even test a change.
 
 # Securing
 
