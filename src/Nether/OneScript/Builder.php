@@ -96,13 +96,14 @@ class Builder {
 	//*/
 
 		// make sure the entire directory tree exists.
+		$umask = umask(0);
 		@mkdir(dirname($this->Filepath),0777,true);
+		umask($umask);
 
 		// make sure we can write.
 		if(!is_writable(dirname($this->Filepath))) {
 			printf(
-				"alert('Script Error: Unable to write final file (%s) directory.');\n\n",
-				$this->FinalForm
+				"alert('Script Error: Unable to write final directory.');\n\n"
 			);
 
 			$this->Opt->Write = false;
@@ -118,7 +119,7 @@ class Builder {
 
 		if(!is_writeable($this->Opt->FinalForm)) {
 			printf(
-				"alert('Script Error: Unable to write final file (%s) directory.');\n\n",
+				"alert('Script Error: Unable to write final file (%s).');\n\n",
 				$this->Opt->FinalForm
 			);
 
@@ -208,7 +209,7 @@ class Builder {
 
 		if($this->Opt->Print) {
 			header("Content-type: text/javascript");
-			header("Content-length: ".strlen($output));
+			//header("Content-length: ".mb_strlen($output));
 			echo $output;
 		}
 
