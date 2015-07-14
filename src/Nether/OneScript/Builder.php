@@ -22,6 +22,8 @@ class Builder {
 
 		$this->Opt = new Nether\Object($opt,[
 
+			'Extension' => 'js',
+
 			'ProjectRoot' => '.',
 			// where we are looking for our files.
 
@@ -111,7 +113,9 @@ class Builder {
 	//*/
 
 		// make sure the entire directory tree exists.
+		$umask = umask(0);
 		@mkdir(dirname($this->Filepath),0777,true);
+		umask($umask);
 
 		// make sure we can write.
 		if(!is_writable(dirname($this->Filepath))) {
@@ -173,7 +177,7 @@ class Builder {
 		foreach($this->Opt->ModuleDirs as $dir) {
 			$files = array_merge(
 				$files,
-				glob("{$this->Opt->ProjectRoot}/src/{$dir}/*.js")
+				glob("{$this->Opt->ProjectRoot}/src/{$dir}/*.{$this->Opt->Extension}")
 			);
 		}
 
@@ -229,7 +233,7 @@ class Builder {
 
 		if($this->Opt->Print) {
 			header("Content-type: text/javascript");
-			header("Content-length: ".strlen($output));
+			//header("Content-length: ".mb_strlen($output));
 			echo $output;
 		}
 
@@ -377,6 +381,10 @@ class Builder {
 	//*/
 
 		if(!$this->HasValidKey()) return $this;
+		if(!$this->HasFileChanged($source)) {
+			echo "// not writing to disk - output unchanged.\n\n";
+			return $this;
+		}
 
 		file_put_contents($this->Filepath,$source);
 		return $this;
