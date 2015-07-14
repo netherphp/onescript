@@ -6,6 +6,7 @@ The only things I dislike more than Javascript are other people's Javascript
 frameworks and build systems. So like a complete tool I wrote my own that
 works in the way I typically build my scripts.
 
+
 # Use Case
 
 Pretending our website project is setup like this.
@@ -32,16 +33,17 @@ and then of course, the next step after that:
 
 * `mylib.min.js`
 
+
 # Using OneScript via CLI
 
 Creating a new project from scratch.
 
-	`php vendor/bin/nether-onescript create test/project`
+	php vendor/bin/nether-onescript create test/project
 
 This will create a blank onescript.json file you can edit. Or you can specify
 options on the command line that match up with the constructor.
 
-	php vendor/bin/nether-onescript create test/project \
+	$ php vendor/bin/nether-onescript create test/project \
 	--FinalForm=mylib.js \
 	--Files=mylib-main.js,mylib-util.js
 	
@@ -57,7 +59,7 @@ This directory will contain:
 
 Building a project...
 
-	`php vendor/bin/nether-onescript build test/project/mylib.json`
+	$ php vendor/bin/nether-onescript build test/project/mylib.json
 	
 Using that example project from above, this will then generate your `mylib.js`
 which will sit right next to the `mylib.json` file.
@@ -117,7 +119,8 @@ Every time I test my site on DEV I will get the updated source and an automatic
 build for production. Once you are ready to bag and tag your release that updated
 .js file is just going to be there. Unless you are bad and didn't even test a change.
 
-# Securing
+
+# Securing Live Build
 
 In the Builder constructor you can add a property called `Key` which is a string
 that will be required in the _GET variable `key` in order to perform
@@ -130,6 +133,5 @@ from your dev sever. This way you won't have to worry about leaving the director
 writable.
 
 The best solution for that solution would probably be to not have the builder in
-the public directory at all. In the future I will probably include a composer bin
-file for compiling via command line.
+the public directory at all, or to use the CLI method.
 
