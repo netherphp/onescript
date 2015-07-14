@@ -218,11 +218,7 @@ class Builder {
 
 		// write to disk.
 		if($this->Opt->Write) {
-			if($this->ShouldWriteToDisk($output)) {
-				$this->WriteToDisk($output);
-			} else {
-				echo "// skipping write - file unchanged.\n\n";
-			}
+			$this->WriteToDisk($output);
 
 			if($this->Opt->WriteProjectFile)
 			$this->WriteProjectFile();
@@ -381,7 +377,7 @@ class Builder {
 	//*/
 
 		if(!$this->HasValidKey()) return $this;
-		if(!$this->HasFileChanged($source)) {
+		if(!$this->ShouldWriteToDisk($source)) {
 			echo "// not writing to disk - output unchanged.\n\n";
 			return $this;
 		}
@@ -436,6 +432,8 @@ class Builder {
 
 	protected function
 	ShouldWriteToDisk($source) {
+		
+		if(!file_exists($this->Filepath)) return true;
 
 		$StripVars = function($input) {
 			return preg_replace('/^@date .*?$/ms','',$input);
