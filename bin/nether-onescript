@@ -1,0 +1,92 @@
+<?php
+
+ini_set('display_errors',true);
+require(sprintf(
+	'%s/autoload.php',
+	dirname(dirname(dirname(dirname(__FILE__))))
+));
+
+$cli = new Nether\Console\Client;
+switch($cli->GetInput(1)) {
+
+	case 'build': {
+		$projectfile = $cli->GetInput(2);
+
+		////////////////
+
+		if(!$projectfile) $cli
+		->Quit("You must specify the path of a project .json file to build.");
+
+		if(!file_exists($projectfile) || !is_readable($projectfile)) $cli
+		->Quit("Specified project file ({$projectfile}) not found or not readable.");
+
+		$data = json_decode(file_get_contents($projectfile));
+
+		if(!is_object($data)) $cli
+		->Quit("Specified project file did not appear JSONesque.");
+
+		////////////////
+
+		$data->ProjectRoot = dirname($projectfile);
+		$data->Print = false;
+		$data->WriteProjectFile = false;
+
+		////////////////
+
+		(new Nether\OneScript\Builder($data))
+		->SetVerbose(true)
+		->Build();
+
+		break;
+	}
+
+	case 'create': {
+		$projectroot = $cli->GetInput(2);
+
+		////////////////
+
+		if(!$projectroot) $cli
+		->Quit("You must specify a project directory.");
+
+		if(!file_exists($projectroot)) {
+			@mkdir($projectroot,0777,true);
+
+			if(!is_dir($projectroot)) $cli
+			->Quit("Unable to create specified project directory.");
+		}
+
+		if(!is_writable($projectroot)) $opt
+		->Quit("Unable to write to specified project directory.");
+
+		////////////////
+
+		$data = (object)$cli->GetOptions();
+		$data->ProjectRoot = $projectroot;
+
+		if(property_exists($data,'Files') && is_string($data->Files))
+		$data->Files = explode(',',$data->Files);
+
+		if(property_exists($data,'ModuleDirs') && is_string($data->ModuleDirs))
+		$data->ModuleDirs = explode(',',$data->ModuleDirs);
+
+		////////////////
+
+		$bob = (new Nether\OneScript\Builder($data))
+		->SetVerbose(true)
+		->Check();
+
+		////////////////
+
+		@mkdir("{$projectroot}/src",0777,true);
+		foreach($bob->Opt->Files as $file) touch("{$projectroot}/src/{$file}");
+		foreach($bob->Opt->ModuleDirs as $dir) @mkdir("{$projectroot}/src/{$dir}");
+
+		if(property_exists($data,'ModuleDirs') && is_array($data->ModuleDirs))
+		foreach($data->ModuleDirs as $dir) @mkdir("{$projectroot}/src/{$dir}");
+
+		$bob->WriteProjectFile();
+
+		break;
+	}
+
+}

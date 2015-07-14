@@ -6,7 +6,8 @@ use \Exception;
 
 class Builder {
 
-	protected $Opt;
+	public $Opt;
+	protected $Verbose = false;
 
 	// these properties will get generated.
 	protected $Filepath;
@@ -55,6 +56,9 @@ class Builder {
 			'Write' => true,
 			// if true it will also write the file to disk.
 
+			'WriteProjectFile' => true,
+			// if true will write a .json describing the job.
+
 			'Key' => false
 			// if set to a string value, it will require that a get variable
 			// called `key` exists to perform serious operations like writing
@@ -67,6 +71,19 @@ class Builder {
 
 	///////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////
+
+	public function
+	Check() {
+	/*//
+	run all the build checks.
+	//*/
+
+		$this->CheckFinalForm();
+		$this->CheckMainFiles();
+		$this->CheckModuleDirs();
+
+		return $this;
+	}
 
 	protected function
 	CheckFinalForm() {
@@ -99,7 +116,7 @@ class Builder {
 		// make sure we can write.
 		if(!is_writable(dirname($this->Filepath))) {
 			printf(
-				"alert('Script Error: Unable to write final file (%s) directory.');\n\n",
+				"alert('Script Error: Unable to write to directory.');\n\n",
 				$this->FinalForm
 			);
 
@@ -114,9 +131,9 @@ class Builder {
 	/*//
 	//*/
 
-		if(!is_writeable($this->Opt->FinalForm)) {
+		if(!is_writeable($this->Filepath)) {
 			printf(
-				"alert('Script Error: Unable to write final file (%s) directory.');\n\n",
+				"alert('Script Error: Unable to write final file (%s).');\n\n",
 				$this->Opt->FinalForm
 			);
 
@@ -181,9 +198,7 @@ class Builder {
 	compile all the files down into the final file.
 	//*/
 
-		$this->CheckFinalForm();
-		$this->CheckMainFiles();
-		$this->CheckModuleDirs();
+		$this->Check();
 
 		$output = '';
 
@@ -198,8 +213,16 @@ class Builder {
 		$this->AppendModuleFiles($output);
 
 		// write to disk.
-		if($this->Opt->Write)
-		$this->WriteToDisk($output);
+		if($this->Opt->Write) {
+			if($this->ShouldWriteToDisk($output)) {
+				$this->WriteToDisk($output);
+			} else {
+				echo "// skipping write - file unchanged.\n\n";
+			}
+
+			if($this->Opt->WriteProjectFile)
+			$this->WriteProjectFile();
+		}
 
 		////////
 		////////
@@ -263,6 +286,9 @@ class Builder {
 	/*//
 	//*/
 
+		if($this->Verbose) echo
+		"ERROR: File Missing - {$filepath}", PHP_EOL;
+
 		return $this->AppendFileMarker(
 			$output,
 			"ERROR: File Missing - {$filepath}"
@@ -274,20 +300,12 @@ class Builder {
 	/*//
 	//*/
 
+		if($this->Verbose) echo
+		"ERROR: Cannot Read File - {$filepath}", PHP_EOL;
+
 		return $this->AppendFileMarker(
 			$output,
 			"ERROR: Cannot Read File - {$filepath}"
-		);
-	}
-
-	protected function
-	AppendFileUnwritable(&$output,$filepath) {
-	/*//
-	//*/
-
-		return $this->AppendFileMarker(
-			$output,
-			"ERROR: Cannot Write File - {$filepath}"
 		);
 	}
 
@@ -353,7 +371,7 @@ class Builder {
 	///////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////
 
-	protected function
+	public function
 	WriteToDisk($source) {
 	/*//
 	//*/
@@ -362,6 +380,32 @@ class Builder {
 
 		file_put_contents($this->Filepath,$source);
 		return $this;
+	}
+
+	public function
+	WriteProjectFile() {
+	/*//
+	write the options used to disk so we can reuse them later from the command
+	line tool or something.
+	//*/
+
+		$config = (array)clone($this->Opt);
+		unset(
+			$config['ProjectRoot'],
+			$config['Key']
+		);
+		ksort($config);
+
+		file_put_contents(
+			sprintf(
+				'%s/%s',
+				dirname($this->Filepath),
+				str_replace('.js','.json',basename($this->Opt->FinalForm))
+			),
+			json_encode($config,JSON_PRETTY_PRINT)
+		);
+
+		return;
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -380,6 +424,32 @@ class Builder {
 
 		// else a failure.
 		return false;
+	}
+
+	protected function
+	ShouldWriteToDisk($source) {
+
+		$StripVars = function($input) {
+			return preg_replace('/^@date .*?$/ms','',$input);
+		};
+
+		$new = md5($StripVars($source));
+		$old = md5($StripVars(file_get_contents($this->Filepath)));
+
+		return !($old === $new);
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+
+	public function
+	SetVerbose($state) {
+	/*//
+	allow printing of messages, mainly for command line mode.
+	//*/
+
+		$this->Verbose = (bool)$state;
+		return $this;
 	}
 
 }
