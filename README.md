@@ -32,7 +32,41 @@ and then of course, the next step after that:
 
 * `mylib.min.js`
 
-# Using OneScript
+# Using OneScript via CLI
+
+Creating a new project from scratch.
+
+	`php vendor/bin/nether-onescript create test/project`
+
+This will create a blank onescript.json file you can edit. Or you can specify
+options on the command line that match up with the constructor.
+
+	php vendor/bin/nether-onescript create test/project \
+	--FinalForm=mylib.js \
+	--Files=mylib-main.js,mylib-util.js
+	
+Will create an new directory in test/project. ProjectRoot will be set to the path
+in defined after `create` so you don't need `--ProjectRoot`.
+
+This directory will contain:
+
+* mylib.json
+* /src/mylib-main.js (empty if not found)
+* /src/mylib-util.js (empty if not found)
+* /src/ext/ (empty)
+
+Building a project...
+
+	`php vendor/bin/nether-onescript build test/project/mylib.json`
+	
+Using that example project from above, this will then generate your `mylib.js`
+which will sit right next to the `mylib.json` file.
+
+This JSON file does not contain any sensitive info, so you should be good to
+keep it laying around the public directory if you are lazy.
+	
+
+# Using OneScript via Live Build
 
 First I am going to create the "Dev Script" - in this case a PHP script which
 will read all of the scripts and then print them out. Every time its refreshed
