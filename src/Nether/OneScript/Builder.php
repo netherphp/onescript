@@ -5,14 +5,47 @@ use \Nether;
 use \Exception;
 
 class Builder {
+/*//
+this class is the main builder which will find all the javascript files that
+you need to boil down into the single onescript build. it is able to be given
+specific files to render in the order given, as well as being able to search
+directories to find any modules or extensions to append after that.
+//*/
 
 	public $Opt;
+	/*//
+	@type object
+	stores the options that were input into the class to describe the project
+	that we want to build.
+	//*/
+	
 	protected $Verbose = false;
+	/*//
+	@type bool
+	if true enables text output, mainly for the console api.
+	//*/
 
-	// these properties will get generated.
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+
 	protected $Filepath;
+	/*//
+	@type string
+	the generated full path to the final file that we want to compile down
+	into.
+	//*/
+	
 	protected $MainFiles = [];
+	/*//
+	@type array(string, ...)
+	a generated list of full paths to the mainfiles that were defined.
+	//*/
+	
 	protected $ModuleFiles = [];
+	/*//
+	@type array(string, ...)
+	a generated list of full paths to any module files that were found.
+	//*/
 
 	///////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////
@@ -23,6 +56,8 @@ class Builder {
 		$this->Opt = new Nether\Object($opt,[
 
 			'Extension' => 'js',
+			// this is the extension we will filter extension files by for
+			// inclusion.
 
 			'ProjectRoot' => '.',
 			// where we are looking for our files.
@@ -77,6 +112,7 @@ class Builder {
 	public function
 	Check() {
 	/*//
+	@return self
 	run all the build checks.
 	//*/
 
@@ -90,6 +126,7 @@ class Builder {
 	protected function
 	CheckFinalForm() {
 	/*//
+	@return self
 	construct the final form to the full file path and check that we will
 	even be able to write to it.
 	//*/
@@ -110,6 +147,9 @@ class Builder {
 	protected function
 	CheckFinalForm_WriteToDirectory() {
 	/*//
+	@return self
+	if the file didn't exist we need to check that the directory we want to
+	write to is writable so we can create the new files inside of it.
 	//*/
 
 		// make sure the entire directory tree exists.
@@ -133,6 +173,9 @@ class Builder {
 	protected function
 	CheckFinalForm_WriteToFile() {
 	/*//
+	@return self
+	if the file did exist we need to make sure it is writable so that we can
+	overwrite it.
 	//*/
 
 		if(!is_writeable($this->Filepath)) {
@@ -152,12 +195,21 @@ class Builder {
 
 	protected function
 	CheckMainFiles() {
+	/*//
+	@return self
+	run through the list of specified main files and see that they exist and
+	are readable. if not, then remove them from the list.
+	//*/
 
 		foreach($this->Opt->Files as $file) {
 			$filepath = "{$this->Opt->ProjectRoot}/src/{$file}";
 
-			if(!file_exists($filepath) || !is_readable($filepath))
-			continue;
+			if(!file_exists($filepath) || !is_readable($filepath)) {
+				if($this->Verbose)
+				printf("// file not found: %s\n",basename($filename));
+				
+				continue;	
+			}
 
 			$this->MainFiles[] = $filepath;
 		}
@@ -171,6 +223,9 @@ class Builder {
 	protected function
 	CheckModuleDirs() {
 	/*//
+	@return self
+	run through the list of specified extension directories and find an files
+	matching the file extension they contain for inclusion.
 	//*/
 
 		$files = [];
@@ -199,6 +254,7 @@ class Builder {
 	public function
 	Build() {
 	/*//
+	@return self
 	compile all the files down into the final file.
 	//*/
 
@@ -242,6 +298,10 @@ class Builder {
 	protected function
 	AppendFile(&$output,$filepath) {
 	/*//
+	@return self
+	append the contents of the specified file to the output buffer. if there
+	was a problem reading the file for any reason then append an error message
+	stating that instead.
 	//*/
 
 		if(!file_exists($filepath)) {
@@ -263,6 +323,8 @@ class Builder {
 	protected function
 	AppendFileMarker(&$output,$filename) {
 	/*//
+	@return self
+	append a little comment header into the output buffer.
 	//*/
 
 		// dont add the marker if disabled.
@@ -284,10 +346,9 @@ class Builder {
 	protected function
 	AppendFileMissing(&$output,$filepath) {
 	/*//
+	@return self
+	append a comment mentioning that a file could not be found.
 	//*/
-
-		if($this->Verbose) echo
-		"ERROR: File Missing - {$filepath}", PHP_EOL;
 
 		return $this->AppendFileMarker(
 			$output,
@@ -298,10 +359,9 @@ class Builder {
 	protected function
 	AppendFileUnreadable(&$output,$filepath) {
 	/*//
+	@return self
+	append a comment mentioning that a file could not be read.
 	//*/
-
-		if($this->Verbose) echo
-		"ERROR: Cannot Read File - {$filepath}", PHP_EOL;
 
 		return $this->AppendFileMarker(
 			$output,
@@ -312,6 +372,8 @@ class Builder {
 	protected function
 	AppendFileContents(&$output,$filepath) {
 	/*//
+	@return self
+	append the contents of a file from disk into the buffer.
 	//*/
 
 		$output .= trim(file_get_contents($filepath));
@@ -326,6 +388,7 @@ class Builder {
 	protected function
 	AppendScriptHeader(&$output) {
 	/*//
+	@return self
 	render out a giant byte wasting header about the build.
 	//*/
 
@@ -347,6 +410,7 @@ class Builder {
 	protected function
 	AppendMainFiles(&$output) {
 	/*//
+	@return self
 	render out the main files.
 	//*/
 
@@ -359,6 +423,7 @@ class Builder {
 	protected function
 	AppendModuleFiles(&$output) {
 	/*//
+	@return self
 	render out the module files.
 	//*/
 
@@ -374,6 +439,9 @@ class Builder {
 	public function
 	WriteToDisk($source) {
 	/*//
+	@return self
+	write the buffer to disk as the final file. checks if the resulting file
+	will has changed at all before actually committing the write.
 	//*/
 
 		if(!$this->HasValidKey()) return $this;
@@ -389,6 +457,7 @@ class Builder {
 	public function
 	WriteProjectFile() {
 	/*//
+	@return self
 	write the options used to disk so we can reuse them later from the command
 	line tool or something.
 	//*/
@@ -418,6 +487,8 @@ class Builder {
 	protected function
 	HasValidKey() {
 	/*//
+	@return bool
+	if an access key was defined check that it exists and that it was correct.
 	//*/
 
 		// if no key was defined then let it pass.
@@ -432,6 +503,10 @@ class Builder {
 
 	protected function
 	ShouldWriteToDisk($source) {
+	/*//
+	@return bool
+	check if the source buffer is different than the current existing file.
+	//*/
 		
 		if(!file_exists($this->Filepath)) return true;
 
@@ -451,6 +526,7 @@ class Builder {
 	public function
 	SetVerbose($state) {
 	/*//
+	@return self
 	allow printing of messages, mainly for command line mode.
 	//*/
 
