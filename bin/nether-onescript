@@ -7,86 +7,131 @@ require(sprintf(
 ));
 
 $cli = new Nether\Console\Client;
-switch($cli->GetInput(1)) {
 
-	case 'build': {
-		$projectfile = $cli->GetInput(2);
+////////
+////////
 
-		////////////////
+$cli->SetHandler('help',function($that){
+	$that->PrintStrings(
+		'Nether OneScript Tool',
+		str_repeat('=',75),
+		'',
+		'>> build <path-to-json-file>',
+		'   run the build process for the specified project. if you specify a directory instead of the project JSON file, it will automatically attempt onescript.json.',
+		'',
+		'>> create <path-to-dir>',
+		'   create a new project in the specified directory.',
+		'',
+		'   --filename=filename (default: onescript.json)',
+		'     [optional] name of the project file to create.',
+		'',
+		'   --files=list,of,files (default: empty)',
+		'     [optional] comma list of files to include as the main files',
+		'',
+		'   --dirs=list,of,directories (default: libs)',
+		'     [optional] comma list of directories to search for modules',
+		'',
+		'   --extensions=list,of,file,exts (default: js)',
+		'     [optional] comma list of extensions to filter modules by.',
+		'',
+		'>> update <path-to-json-file>',
+		'   open a project and resave it, useful for throwing in any default options missing from it.',
+		''
+	);
 
-		if(!$projectfile) $cli
-		->Quit("You must specify the path of a project .json file to build.");
+	return 0;
+});
 
-		if(!file_exists($projectfile) || !is_readable($projectfile)) $cli
-		->Quit("Specified project file ({$projectfile}) not found or not readable.");
+////////////////////////////////
+////////////////////////////////
 
-		$data = json_decode(file_get_contents($projectfile));
+$cli->SetHandler('build',function($that){
 
-		if(!is_object($data)) $cli
-		->Quit("Specified project file did not appear JSONesque.");
+	$file = $that->GetInput(2);
+	if(is_dir($file)) $file .= DIRECTORY_SEPARATOR . 'onescript.json';
 
-		////////////////
-
-		$data->ProjectRoot = dirname($projectfile);
-		$data->Print = false;
-		$data->WriteProjectFile = false;
-
-		////////////////
-
-		(new Nether\OneScript\Builder($data))
-		->SetVerbose(true)
-		->Build();
-
-		break;
+	try { $project = Nether\OneScript\Project::FromFile($file); }
+	catch(Exception $e) {
+		echo "ERROR: {$e->getMessge()}", PHP_EOL;
+		return $e->getCode();
 	}
 
-	case 'create': {
-		$projectroot = $cli->GetInput(2);
-
-		////////////////
-
-		if(!$projectroot) $cli
-		->Quit("You must specify a project directory.");
-
-		if(!file_exists($projectroot)) {
-			@mkdir($projectroot,0777,true);
-
-			if(!is_dir($projectroot)) $cli
-			->Quit("Unable to create specified project directory.");
-		}
-
-		if(!is_writable($projectroot)) $opt
-		->Quit("Unable to write to specified project directory.");
-
-		////////////////
-
-		$data = (object)$cli->GetOptions();
-		$data->ProjectRoot = $projectroot;
-
-		if(property_exists($data,'Files') && is_string($data->Files))
-		$data->Files = explode(',',$data->Files);
-
-		if(property_exists($data,'ModuleDirs') && is_string($data->ModuleDirs))
-		$data->ModuleDirs = explode(',',$data->ModuleDirs);
-
-		////////////////
-
-		$bob = (new Nether\OneScript\Builder($data))
-		->SetVerbose(true)
-		->Check();
-
-		////////////////
-
-		@mkdir("{$projectroot}/src",0777,true);
-		foreach($bob->Opt->Files as $file) touch("{$projectroot}/src/{$file}");
-		foreach($bob->Opt->ModuleDirs as $dir) @mkdir("{$projectroot}/src/{$dir}");
-
-		if(property_exists($data,'ModuleDirs') && is_array($data->ModuleDirs))
-		foreach($data->ModuleDirs as $dir) @mkdir("{$projectroot}/src/{$dir}");
-
-		$bob->WriteProjectFile();
-
-		break;
+	try { $project->Build(); }
+	catch(Exception $e) {
+		echo "ERROR: {$e->getMessage()}", PHP_EOL;
+		return $e->getCode();
 	}
 
-}
+	return 0;
+});
+
+////////////////////////////////
+////////////////////////////////
+
+$cli->SetHandler('create',function($that){
+
+	$dir = $that->GetInput(2);
+	$filename = ($that->GetOption('filename'))?:('onescript.json');
+	$files = explode(',',$that->GetOption('files'));
+	$dirs = explode(',',$that->GetOption('dirs'));
+	$exts = explode(',',$that->GetOption('extensions'));
+
+	if(!$dir) {
+		echo "ERROR: no project file specified.", PHP_EOL;
+		return 1;
+	}
+
+	if(!file_exists($dir) && !$that->MakeDirectory($dir)) {
+		echo "ERROR: unable to create project directory.", PHP_EOL;
+		return 2;
+	}
+
+	if(file_exists($dir) && !is_writable($dir)) {
+		echo "ERROR: unable to write in project directory.", PHP_EOL;
+		return 3;
+	}
+
+	if(file_exists("{$dir}/{$filename}")) {
+		echo "ERROR: project file already exists.", PHP_EOL;
+		return 4;
+	}
+
+	$project = new Nether\OneScript\Project;
+	if(count($files) && $files[0]) $project->Files = $files;
+	if(count($dirs) && $dirs[0]) $project->Directories = $dirs;
+	if(count($exts) && $exts[0]) $project->Extensions = $exts;
+
+	$project->Save("{$dir}/{$filename}");
+	return 0;
+});
+
+////////////////////////////////
+////////////////////////////////
+
+$cli->SetHandler('update',function($that){
+	$file = $that->GetInput(2);
+
+	if(is_dir($file))
+	$file = trim($file,'\\/') . DIRECTORY_SEPARATOR . 'onescript.json';
+
+	$that->PrintMessage("opening {$file}");
+	try { $project = Nether\OneScript\Project::FromFile($file); }
+	catch(Exception $e) {
+		$that->PrintMessage("ERROR: {$e->getMessage()}");
+		return $e->getCode();
+	}
+
+	$that->PrintMessage("saving {$file}");
+	try { $project->Save(); }
+	catch(Exception $e) {
+		$that->PrintMessage("ERROR: {$e->getMessage()}");
+		return $e->getCode();
+	}
+
+	return 0;
+});
+
+////////////////////////////////
+////////////////////////////////
+
+exit($cli->Run());
