@@ -303,7 +303,7 @@ class Project {
 	/*//
 	//*/
 
-		$buffer .= file_get_contents($filename);
+		$buffer .= trim(file_get_contents($filename));
 		$buffer .= PHP_EOL.PHP_EOL;
 
 		return;
@@ -373,6 +373,33 @@ class Project {
 
 	////////////////////////////////
 	////////////////////////////////
+	
+	public function
+	Bootstrap() {
+	/*//
+	//*/
+	
+		if(!$this->ProjectFile)
+		throw new Exception('no project file set');	
+		
+		////////
+		////////	
+		
+		$dir = dirname($this->ProjectFile);
+	
+		// make main source directory.
+		static::MakeDirectory("{$dir}/src");
+		
+		// make module directories.
+		foreach($this->Directories as $libdir)
+		static::MakeDirectory("{$dir}/src/{$libdir}");
+
+		// make blank mainfiles.		
+		foreach($this->Files as $mainfile)
+		touch("{$dir}/src/{$mainfile}");
+			
+		return $this;
+	}
 
 	public function
 	Save($file=null) {

@@ -97,11 +97,17 @@ $cli->SetHandler('create',function($that){
 	}
 
 	$project = new Nether\OneScript\Project;
+	$project->SetProjectFile("{$dir}/{$filename}");
+	
 	if(count($files) && $files[0]) $project->Files = $files;
 	if(count($dirs) && $dirs[0]) $project->Directories = $dirs;
 	if(count($exts) && $exts[0]) $project->Extensions = $exts;
 
-	$project->Save("{$dir}/{$filename}");
+	$that->PrintMessage('creating project...');
+
+	$project->Bootstrap();
+	$project->Save();
+
 	return 0;
 });
 
