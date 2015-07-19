@@ -25,6 +25,12 @@ $cli->SetHandler('help',function($that){
 		'   --filename=filename (default: onescript.json)',
 		'     [optional] name of the project file to create.',
 		'',
+		'   --outfile=filename (default: onescript.js)',
+		'     [optional] name of the compiled file to create.',
+		'',
+		'   --minfile=filename (default: onescript.min.js)',
+		'     [optional] name of the compiled minified file to create.',
+		'',
 		'   --files=list,of,files (default: empty)',
 		'     [optional] comma list of files to include as the main files',
 		'',
@@ -75,6 +81,16 @@ $cli->SetHandler('create',function($that){
 	$files = explode(',',$that->GetOption('files'));
 	$dirs = explode(',',$that->GetOption('dirs'));
 	$exts = explode(',',$that->GetOption('extensions'));
+	$outfile = $that->GetOption('outfile');
+	$minfile = $that->GetOption('minfile');
+	
+	if(!$minfile && $outfile) {
+		$minfile = preg_replace(
+			'/\.([^\.]+)$/',
+			'.min.\1',
+			$outfile
+		);
+	}
 
 	if(!$dir) {
 		echo "ERROR: no project file specified.", PHP_EOL;
@@ -99,6 +115,8 @@ $cli->SetHandler('create',function($that){
 	$project = new Nether\OneScript\Project;
 	$project->SetProjectFile("{$dir}/{$filename}");
 	
+	if($outfile) $project->OutputFile = $outfile;
+	if($minfile) $project->OutputMinFile = $minfile;
 	if(count($files) && $files[0]) $project->Files = $files;
 	if(count($dirs) && $dirs[0]) $project->Directories = $dirs;
 	if(count($exts) && $exts[0]) $project->Extensions = $exts;
