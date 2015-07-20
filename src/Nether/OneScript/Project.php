@@ -82,14 +82,14 @@ class Project {
 	from eachother. this of course will be stripped out in the minified
 	version.
 	//*/
-	
+
 	public $DistDir = 'dist';
 	/*//
 	the directory compiled files will be stored into. this is the distribution
 	directory, the goal is you can copy or symlink that into your public web
 	if you so choose.
 	//*/
-	
+
 	////////////////////////////////
 	////////////////////////////////
 
@@ -104,7 +104,7 @@ class Project {
 	since we put in a full filepath for the project file, we will
 	give back a full filepath as well.
 	//*/
-	
+
 		return $this->InputDir.DIRECTORY_SEPARATOR.$this->ProjectFile;
 	}
 
@@ -114,29 +114,29 @@ class Project {
 	set the project file and generate input/output directories based on it
 	if they were not yet set.
 	//*/
-	
+
 		$this->ProjectFile = basename($p);
-		
+
 		if(!$this->InputDir)
 		$this->InputDir = dirname($p);
-		
+
 		if(!$this->OutputDir)
 		$this->OutputDir = dirname($p);
-		
+
 		return $this;
 	}
-	
+
 	////////////////////////////////
 	////////////////////////////////
-	
+
 	protected $InputDir;
-	
+
 	public function
 	GetInputDir() { return $this->InputDir; }
 
 	public function
 	SetInputDir($d) { $this->InputDir = $d; return $this; }
-		
+
 	protected $OutputDir;
 
 	public function
@@ -144,7 +144,7 @@ class Project {
 
 	public function
 	SetOutputDir($d) { $this->OutputDir = $d; return $this; }
-	
+
 	////////////////////////////////
 	////////////////////////////////
 
@@ -162,6 +162,9 @@ class Project {
 
 		foreach($config as $prop => $val)
 		$this->{$prop} = $val;
+
+		// default to javascript.
+		if($this->Print === true) $this->Print = 'js';
 
 		return;
 	}
@@ -183,7 +186,7 @@ class Project {
 	////////////////////////////////
 	////////////////////////////////
 
-	protected function
+	public function
 	GetPublicProperties() {
 	/*//
 	@return array
@@ -299,9 +302,14 @@ class Project {
 
 		if($this->OutputFile) {
 			if(!$this->WriteToDisk($outfile,$source)) {
-				if($this->Print) echo '// ';
-				echo "output unchanged - not writing to disk.",PHP_EOL;
-				if($this->Print) echo PHP_EOL;
+				echo $this->GetComment(
+					$this->Print,
+					"INFO: output was unchanged with this build.",
+					$source
+				);
+
+				if($this->Print)
+				echo PHP_EOL;
 			}
 		}
 
@@ -315,24 +323,58 @@ class Project {
 
 	////////////////////////////////
 	////////////////////////////////
-	
+
+	public function
+	Copy($dest) {
+	/*//
+	//*/
+
+		static::CopyDir(
+			$this->OutputDir,
+			$dest
+		);
+
+		return $this;
+	}
+
 	public function
 	Deploy($dest) {
 	/*//
 	//*/
-	
-		$ds = DIRECTORY_SEPARATOR;
-	
+
 		static::CopyDir(
-			"{$this->OutputDir}{$ds}{$this->DistDir}",
+			sprintf(
+				"%s%s%s",
+				$this->OutputDir,
+				DIRECTORY_SEPARATOR,
+				$this->DistDir
+			),
 			$dest
 		);
-		
+
 		return $this;
 	}
 
 	////////////////////////////////
 	////////////////////////////////
+
+	protected function
+	GetComment($lang,$text) {
+	/*//
+	//*/
+
+		if($lang) switch($lang) {
+			case 'c':
+			case 'css':
+			case 'js':
+			case 'php':
+			case 'standard': {
+				return "/* {$text} */".PHP_EOL;
+			}
+		}
+
+		else return $text.PHP_EOL;
+	}
 
 	protected function
 	AppendFile($filename,&$buffer) {
@@ -441,37 +483,37 @@ class Project {
 
 	////////////////////////////////
 	////////////////////////////////
-	
+
 	public function
 	Bootstrap() {
 	/*//
 	//*/
-	
+
 		if(!$this->ProjectFile)
 		throw new Exception('no project file set');
-		
+
 		if(!$this->OutputDir)
 		throw new Exception('no output directory set.');
-		
+
 		if(!$this->InputDir)
 		throw new Exception('no input direcetory set.');
-		
+
 		////////
 		////////
-		
+
 		$ds = DIRECTORY_SEPARATOR;
-	
+
 		// make main source directory.
 		static::MakeDirectory("{$this->InputDir}{$ds}src");
-		
+
 		// make module directories.
 		foreach($this->Directories as $libdir)
 		static::MakeDirectory("{$this->InputDir}{$ds}src{$ds}{$libdir}");
 
-		// make blank mainfiles.		
+		// make blank mainfiles.
 		foreach($this->Files as $mainfile)
 		touch("{$this->InputDir}{$ds}src{$ds}{$mainfile}");
-			
+
 		return $this;
 	}
 
@@ -484,7 +526,7 @@ class Project {
 
 		if(!$this->OutputDir)
 		throw new Exception('no output dir set');
-		
+
 		$ds = DIRECTORY_SEPARATOR;
 		$file = "{$this->InputDir}{$ds}{$this->ProjectFile}";
 
@@ -551,30 +593,32 @@ class Project {
 
 		return is_dir($dir);
 	}
-	
+
 	static public function
 	CopyDir($source,$dest) {
 	/*//
 	do a recursive copy of a directory.
+	it will not copy over the .git folder.
 	//*/
-		
+
 		foreach(new Nether\OneScript\FileFinder($source,null) as $cur) {
 			if(is_dir($cur->GetPathname())) {
-				
+				if($cur->GetFilename() === '.git') continue;
+
 				if(!static::MakeDirectory("{$dest}/{$cur->GetFilename()}"))
 				throw new Exception("unable create new directory in destination.");
-				
+
 				static::CopyDir(
 					$cur->GetPathname(),
 					"{$dest}/{$cur->GetFilename()}"
 				);
 			}
-			
+
 			elseif(is_file($cur->GetPathname())) {
 				copy($cur->GetPathname(),"{$dest}/{$cur->GetFilename()}");
 			}
 		}
-		
+
 		return;
 	}
 

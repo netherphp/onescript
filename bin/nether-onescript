@@ -19,8 +19,11 @@ $cli->SetHandler('help',function($that){
 		'>> build <path-to-json-file>',
 		'   run the build process for the specified project. if you specify a directory instead of the project JSON file, it will automatically attempt onescript.json.',
 		'',
+		'   --copy=dir (default: none)',
+		'     [optional] copy the entire project directory (sans .git) to the specified directory. most of the time however --deploy should be preferred over --copy.',
+		'',
 		'   --deploy=dir (default: none)',
-		'     [optional] after building the final distribution will be copied to the specified directory.',
+		'     [optional] after building the final distribution will be copied to the specified directory (so, only the dist dir contents).',
 		'',
 		'>> create <path-to-dir>',
 		'   create a new project in the specified directory.',
@@ -59,41 +62,61 @@ $cli->SetHandler('build',function($that){
 	$ds = DIRECTORY_SEPARATOR;
 	$file = $that->GetInput(2);
 	if(is_dir($file)) $file .= "{$ds}onescript.json";
-	
+
 	$deploy = $that->GetOption('deploy');
-	if($deploy) {
-		if(is_file($deploy)) {
-			echo "ERROR: specified deploy dir is currently a file.", PHP_EOL;
+	$copy = $that->GetOption('copy');
+
+	foreach([$deploy,$copy] as $cpdir) {
+		if(!$cpdir) continue;
+
+		$that->PrintMessage(">> preparing {$cpdir}...");
+
+		if(is_file($cpdir)) {
+			$that->PrintMessage("ERROR: specified deploy dir is currently a file.");
 			return 1;
 		}
-		
-		if(is_dir($deploy) && !is_writable($deploy)) {
-			echo "ERROR: unable to write to deploy dir", PHP_EOL;
+
+		if(is_dir($cpdir) && !is_writable($cpdir)) {
+			$that->PrintMessage("ERROR: unable to write to deploy dir");
 			return 2;
 		}
-		
-		if(!file_exists($deploy) && !is_writable(dirname($deploy))) {
-			echo "ERROR: unable to create deploy dir", PHP_EOL;
-			return 3;
-		}		
-	}
 
+		if(!file_exists($cpdir)) {
+			if(!Nether\OneScript\Project::MakeDirectory($cpdir)) {
+				$that->PrintMessage("ERROR: unable to create deploy dir");
+				return 3;
+			}
+		}
+	} unset($cpdir);
+
+	$that->PrintMessage(">> opening {$file}...");
 	try { $project = Nether\OneScript\Project::FromFile($file); }
 	catch(Exception $e) {
-		echo "ERROR: {$e->getMessge()}", PHP_EOL;
+		$that->PrintMessage("ERROR: {$e->getMessge()}");
 		return $e->getCode()+100;
 	}
 
+	$that->PrintMessage(">> building {$project->OutputFile}...");
 	try { $project->Build(); }
 	catch(Exception $e) {
-		echo "ERROR: {$e->getMessage()}", PHP_EOL;
+		$that->PrintMessage("ERROR: {$e->getMessage()}");
 		return $e->getCode()+100;
 	}
-	
+
 	if($deploy) {
+		$that->PrintMessage(">> deploying to {$deploy}...");
 		try { $project->Deploy($deploy); }
 		catch(Exception $e) {
-			echo $e->getMessage();
+			$that->PrintMessage("ERROR: {$e->getMessge()}");
+			return $e->getCode()+100;
+		}
+	}
+
+	if($copy) {
+		$that->PrintMessage(">> copying to {$copy}...");
+		try { $project->Copy($copy); }
+		catch(Exception $e) {
+			$that->PrintMessage("ERROR: {$e->getMessge()}");
 			return $e->getCode()+100;
 		}
 	}
@@ -113,7 +136,7 @@ $cli->SetHandler('create',function($that){
 	$exts = explode(',',$that->GetOption('extensions'));
 	$outfile = $that->GetOption('outfile');
 	$minfile = $that->GetOption('minfile');
-	
+
 	// generate a min filename from the outfile for conviencne.
 	if(!$minfile && $outfile) {
 		$minfile = preg_replace(
@@ -124,37 +147,41 @@ $cli->SetHandler('create',function($that){
 	}
 
 	if(!$dir) {
-		echo "ERROR: no project file specified.", PHP_EOL;
+		$that->PrintMessage("ERROR: no project file specified.");
 		return 1;
 	}
 
 	if(!file_exists($dir) && !$that->MakeDirectory($dir)) {
-		echo "ERROR: unable to create project directory.", PHP_EOL;
+		$that->PrintMessage("ERROR: unable to create project directory.");
 		return 2;
 	}
 
 	if(file_exists($dir) && !is_writable($dir)) {
-		echo "ERROR: unable to write in project directory.", PHP_EOL;
+		$that->PrintMessage("ERROR: unable to write in project directory.");
 		return 3;
 	}
 
 	if(file_exists("{$dir}/{$filename}")) {
-		echo "ERROR: project file already exists.", PHP_EOL;
+		$that->PrintMessage("ERROR: project file already exists.");
 		return 4;
 	}
 
 	$project = new Nether\OneScript\Project;
 	$project->SetProjectFile("{$dir}/{$filename}");
-	
+
 	if($outfile) $project->OutputFile = $outfile;
 	if($minfile) $project->OutputMinFile = $minfile;
 	if(count($files) && $files[0]) $project->Files = $files;
 	if(count($dirs) && $dirs[0]) $project->Directories = $dirs;
 	if(count($exts) && $exts[0]) $project->Extensions = $exts;
 
-	$that->PrintMessage('creating project...');
+	$that->PrintMessage(">> creating project {$filename}...");
+	echo $project;
 
+	$that->PrintMessage(">> bootstrapping project directory...");
 	$project->Bootstrap();
+
+	$that->PrintMessage(">> saving project...");
 	$project->Save();
 
 	return 0;
@@ -169,14 +196,14 @@ $cli->SetHandler('update',function($that){
 	if(is_dir($file))
 	$file = trim($file,'\\/') . DIRECTORY_SEPARATOR . 'onescript.json';
 
-	$that->PrintMessage("opening {$file}");
+	$that->PrintMessage(">> opening project {$file}...");
 	try { $project = Nether\OneScript\Project::FromFile($file); }
 	catch(Exception $e) {
 		$that->PrintMessage("ERROR: {$e->getMessage()}");
 		return $e->getCode()+100;
 	}
 
-	$that->PrintMessage("saving {$file}");
+	$that->PrintMessage(">> saving project {$file}...");
 	try { $project->Save(); }
 	catch(Exception $e) {
 		$that->PrintMessage("ERROR: {$e->getMessage()}");
