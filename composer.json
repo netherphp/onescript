@@ -10,8 +10,8 @@
 		  "role":"developer" }
 	],
 	"require": {
-		"netherphp/object": "~1.0.0",
-		"netherphp/console": "~1.0.0"
+		"netherphp/object": "^1.0.0",
+		"netherphp/console": "^1.0.1"
 	},
 	"require-dev": {
 		"codeception/codeception": "~2.0.13",

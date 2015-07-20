@@ -24,17 +24,21 @@ will be unable to resist falling in love with me now.
 	////////////////////////////////
 
 	public function
-	__construct($directory, array $extensions=[]) {
+	__construct($directory, $extensions=[]) {
 	/*//
 	@override
 	//*/
 
 		parent::__construct(new FilesystemIterator(
 			$directory,
-			(FilesystemIterator::SKIP_DOTS | FilesystemIterator::CURRENT_AS_PATHNAME)
+			(FilesystemIterator::SKIP_DOTS | FilesystemIterator::CURRENT_AS_FILEINFO)
 		));
 
+		// if given some extensions, flip them to generate a hash lookup
+		// table instead.
+		if(is_array($extensions))
 		$this->Exts = array_flip($extensions);
+
 		return;
 	}
 
@@ -46,7 +50,13 @@ will be unable to resist falling in love with me now.
 	/*//
 	@override
 	//*/
+	
+		// provide a way for me to reuse this to accept all files. then
+		// i can reuse this is a recursive copy.
+		if($this->Exts === null)
+		return true;
 
+		// else do the test.
 		return array_key_exists(
 			$this->getInnerIterator()->getExtension(),
 			$this->Exts

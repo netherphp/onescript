@@ -19,6 +19,9 @@ $cli->SetHandler('help',function($that){
 		'>> build <path-to-json-file>',
 		'   run the build process for the specified project. if you specify a directory instead of the project JSON file, it will automatically attempt onescript.json.',
 		'',
+		'   --deploy=dir (default: none)',
+		'     [optional] after building the final distribution will be copied to the specified directory.',
+		'',
 		'>> create <path-to-dir>',
 		'   create a new project in the specified directory.',
 		'',
@@ -53,19 +56,46 @@ $cli->SetHandler('help',function($that){
 
 $cli->SetHandler('build',function($that){
 
+	$ds = DIRECTORY_SEPARATOR;
 	$file = $that->GetInput(2);
-	if(is_dir($file)) $file .= DIRECTORY_SEPARATOR . 'onescript.json';
+	if(is_dir($file)) $file .= "{$ds}onescript.json";
+	
+	$deploy = $that->GetOption('deploy');
+	if($deploy) {
+		if(is_file($deploy)) {
+			echo "ERROR: specified deploy dir is currently a file.", PHP_EOL;
+			return 1;
+		}
+		
+		if(is_dir($deploy) && !is_writable($deploy)) {
+			echo "ERROR: unable to write to deploy dir", PHP_EOL;
+			return 2;
+		}
+		
+		if(!file_exists($deploy) && !is_writable(dirname($deploy))) {
+			echo "ERROR: unable to create deploy dir", PHP_EOL;
+			return 3;
+		}		
+	}
 
 	try { $project = Nether\OneScript\Project::FromFile($file); }
 	catch(Exception $e) {
 		echo "ERROR: {$e->getMessge()}", PHP_EOL;
-		return $e->getCode();
+		return $e->getCode()+100;
 	}
 
 	try { $project->Build(); }
 	catch(Exception $e) {
 		echo "ERROR: {$e->getMessage()}", PHP_EOL;
-		return $e->getCode();
+		return $e->getCode()+100;
+	}
+	
+	if($deploy) {
+		try { $project->Deploy($deploy); }
+		catch(Exception $e) {
+			echo $e->getMessage();
+			return $e->getCode()+100;
+		}
 	}
 
 	return 0;
@@ -84,6 +114,7 @@ $cli->SetHandler('create',function($that){
 	$outfile = $that->GetOption('outfile');
 	$minfile = $that->GetOption('minfile');
 	
+	// generate a min filename from the outfile for conviencne.
 	if(!$minfile && $outfile) {
 		$minfile = preg_replace(
 			'/\.([^\.]+)$/',
@@ -142,14 +173,14 @@ $cli->SetHandler('update',function($that){
 	try { $project = Nether\OneScript\Project::FromFile($file); }
 	catch(Exception $e) {
 		$that->PrintMessage("ERROR: {$e->getMessage()}");
-		return $e->getCode();
+		return $e->getCode()+100;
 	}
 
 	$that->PrintMessage("saving {$file}");
 	try { $project->Save(); }
 	catch(Exception $e) {
 		$that->PrintMessage("ERROR: {$e->getMessage()}");
-		return $e->getCode();
+		return $e->getCode()+100;
 	}
 
 	return 0;

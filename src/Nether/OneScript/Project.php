@@ -82,7 +82,14 @@ class Project {
 	from eachother. this of course will be stripped out in the minified
 	version.
 	//*/
-
+	
+	public $DistDir = 'dist';
+	/*//
+	the directory compiled files will be stored into. this is the distribution
+	directory, the goal is you can copy or symlink that into your public web
+	if you so choose.
+	//*/
+	
 	////////////////////////////////
 	////////////////////////////////
 
@@ -92,11 +99,52 @@ class Project {
 	//*/
 
 	public function
-	GetProjectFile() { return $this->ProjectFile; }
+	GetProjectFile() {
+	/*//
+	since we put in a full filepath for the project file, we will
+	give back a full filepath as well.
+	//*/
+	
+		return $this->InputDir.DIRECTORY_SEPARATOR.$this->ProjectFile;
+	}
 
 	public function
-	SetProjectFile($p) { $this->ProjectFile = $p; return $this; }
+	SetProjectFile($p) {
+	/*//
+	set the project file and generate input/output directories based on it
+	if they were not yet set.
+	//*/
+	
+		$this->ProjectFile = basename($p);
+		
+		if(!$this->InputDir)
+		$this->InputDir = dirname($p);
+		
+		if(!$this->OutputDir)
+		$this->OutputDir = dirname($p);
+		
+		return $this;
+	}
+	
+	////////////////////////////////
+	////////////////////////////////
+	
+	protected $InputDir;
+	
+	public function
+	GetInputDir() { return $this->InputDir; }
 
+	public function
+	SetInputDir($d) { $this->InputDir = $d; return $this; }
+		
+	protected $OutputDir;
+
+	public function
+	GetOutputDir() { return $this->OutputDir; }
+
+	public function
+	SetOutputDir($d) { $this->OutputDir = $d; return $this; }
+	
 	////////////////////////////////
 	////////////////////////////////
 
@@ -180,14 +228,14 @@ class Project {
 	//*/
 
 		$output = [];
-		$root = dirname($this->ProjectFile);
+		$ds = DIRECTORY_SEPARATOR;
 
 		foreach($this->Files as $filename) {
-			$filepath = "{$root}/src/{$filename}";
+			$filepath = "{$this->InputDir}{$ds}src{$ds}{$filename}";
 
 			if(!file_exists($filepath))
 			throw new Exception(
-				"file src/{$filename} not found",
+				"file src{$ds}{$filename} not found",
 				static::ErrorFileUnreadable
 			);
 
@@ -206,16 +254,16 @@ class Project {
 	//*/
 
 		$output = [];
-		$root = dirname($this->ProjectFile);
+		$ds = DIRECTORY_SEPARATOR;
 
 		foreach($this->Directories as $dir) {
 			$finder = new Nether\OneScript\FileFinder(
-				"{$root}/src/{$dir}",
+				"{$this->InputDir}{$ds}src{$ds}{$dir}",
 				$this->Extensions
 			);
 
-			foreach($finder as $filepath)
-			$output[] = $filepath;
+			foreach($finder as $info)
+			$output[] = $info->GetPathname();
 		}
 
 		sort($output);
@@ -231,11 +279,13 @@ class Project {
 	compile the files down to the final form.
 	//*/
 
+		$ds = DIRECTORY_SEPARATOR;
 		$source = '';
 		$filelist = $this->FindTheFiles();
 		$outfile = sprintf(
-			'%s/%s',
-			dirname($this->ProjectFile),
+			"%s{$ds}%s{$ds}%s",
+			$this->OutputDir,
+			$this->DistDir,
 			$this->OutputFile
 		);
 
@@ -260,7 +310,25 @@ class Project {
 			echo $source, PHP_EOL;
 		}
 
-		return;
+		return $this;
+	}
+
+	////////////////////////////////
+	////////////////////////////////
+	
+	public function
+	Deploy($dest) {
+	/*//
+	//*/
+	
+		$ds = DIRECTORY_SEPARATOR;
+	
+		static::CopyDir(
+			"{$this->OutputDir}{$ds}{$this->DistDir}",
+			$dest
+		);
+		
+		return $this;
 	}
 
 	////////////////////////////////
@@ -286,7 +354,7 @@ class Project {
 	//*/
 
 		$filename = trim(str_replace(
-			dirname($this->ProjectFile),'',
+			$this->InputDir,'',
 			$filename
 		),'\\/');
 
@@ -316,7 +384,7 @@ class Project {
 
 		foreach($files as &$file)
 		$file = trim(str_replace(
-			dirname($this->ProjectFile),'',
+			$this->InputDir,'',
 			$file
 		),'\\/');
 
@@ -380,35 +448,45 @@ class Project {
 	//*/
 	
 		if(!$this->ProjectFile)
-		throw new Exception('no project file set');	
+		throw new Exception('no project file set');
+		
+		if(!$this->OutputDir)
+		throw new Exception('no output directory set.');
+		
+		if(!$this->InputDir)
+		throw new Exception('no input direcetory set.');
 		
 		////////
-		////////	
+		////////
 		
-		$dir = dirname($this->ProjectFile);
+		$ds = DIRECTORY_SEPARATOR;
 	
 		// make main source directory.
-		static::MakeDirectory("{$dir}/src");
+		static::MakeDirectory("{$this->InputDir}{$ds}src");
 		
 		// make module directories.
 		foreach($this->Directories as $libdir)
-		static::MakeDirectory("{$dir}/src/{$libdir}");
+		static::MakeDirectory("{$this->InputDir}{$ds}src{$ds}{$libdir}");
 
 		// make blank mainfiles.		
 		foreach($this->Files as $mainfile)
-		touch("{$dir}/src/{$mainfile}");
+		touch("{$this->InputDir}{$ds}src{$ds}{$mainfile}");
 			
 		return $this;
 	}
 
 	public function
-	Save($file=null) {
+	Save() {
 	/*//
 	@return self
 	save the project json file to disk.
 	//*/
 
-		if(!$file) $file = $this->ProjectFile;
+		if(!$this->OutputDir)
+		throw new Exception('no output dir set');
+		
+		$ds = DIRECTORY_SEPARATOR;
+		$file = "{$this->InputDir}{$ds}{$this->ProjectFile}";
 
 		if(!file_exists($file) && !is_writable(dirname($file)))
 		throw new Exception(
@@ -472,6 +550,32 @@ class Project {
 		umask($umask);
 
 		return is_dir($dir);
+	}
+	
+	static public function
+	CopyDir($source,$dest) {
+	/*//
+	do a recursive copy of a directory.
+	//*/
+		
+		foreach(new Nether\OneScript\FileFinder($source,null) as $cur) {
+			if(is_dir($cur->GetPathname())) {
+				
+				if(!static::MakeDirectory("{$dest}/{$cur->GetFilename()}"))
+				throw new Exception("unable create new directory in destination.");
+				
+				static::CopyDir(
+					$cur->GetPathname(),
+					"{$dest}/{$cur->GetFilename()}"
+				);
+			}
+			
+			elseif(is_file($cur->GetPathname())) {
+				copy($cur->GetPathname(),"{$dest}/{$cur->GetFilename()}");
+			}
+		}
+		
+		return;
 	}
 
 	static public function
