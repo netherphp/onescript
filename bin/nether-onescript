@@ -12,7 +12,7 @@ $cli = new Nether\Console\Client;
 ////////
 
 $cli->SetHandler('help',function($that){
-	$that->PrintStrings(
+	$that::Messages(
 		'Nether OneScript Tool',
 		str_repeat('=',75),
 		'',
@@ -69,54 +69,54 @@ $cli->SetHandler('build',function($that){
 	foreach([$deploy,$copy] as $cpdir) {
 		if(!$cpdir) continue;
 
-		$that->PrintMessage(">> preparing {$cpdir}...");
+		$that::Message(">> preparing {$cpdir}...");
 
 		if(is_file($cpdir)) {
-			$that->PrintMessage("ERROR: specified deploy dir is currently a file.");
+			$that::Message("ERROR: specified deploy dir is currently a file.");
 			return 1;
 		}
 
 		if(is_dir($cpdir) && !is_writable($cpdir)) {
-			$that->PrintMessage("ERROR: unable to write to deploy dir");
+			$that::Message("ERROR: unable to write to deploy dir");
 			return 2;
 		}
 
 		if(!file_exists($cpdir)) {
 			if(!Nether\OneScript\Project::MakeDirectory($cpdir)) {
-				$that->PrintMessage("ERROR: unable to create deploy dir");
+				$that::Message("ERROR: unable to create deploy dir");
 				return 3;
 			}
 		}
 	} unset($cpdir);
 
-	$that->PrintMessage(">> opening {$file}...");
+	$that::Message(">> opening {$file}...");
 	try { $project = Nether\OneScript\Project::FromFile($file); }
 	catch(Exception $e) {
-		$that->PrintMessage("ERROR: {$e->getMessge()}");
+		$that::Message("ERROR: {$e->getMessge()}");
 		return $e->getCode()+100;
 	}
 
-	$that->PrintMessage(">> building {$project->OutputFile}...");
+	$that::Message(">> building {$project->OutputFile}...");
 	try { $project->Build(); }
 	catch(Exception $e) {
-		$that->PrintMessage("ERROR: {$e->getMessage()}");
+		$that::Message("ERROR: {$e->getMessage()}");
 		return $e->getCode()+100;
 	}
 
 	if($deploy) {
-		$that->PrintMessage(">> deploying to {$deploy}...");
+		$that::Message(">> deploying to {$deploy}...");
 		try { $project->Deploy($deploy); }
 		catch(Exception $e) {
-			$that->PrintMessage("ERROR: {$e->getMessge()}");
+			$that::Message("ERROR: {$e->getMessge()}");
 			return $e->getCode()+100;
 		}
 	}
 
 	if($copy) {
-		$that->PrintMessage(">> copying to {$copy}...");
+		$that::Message(">> copying to {$copy}...");
 		try { $project->Copy($copy); }
 		catch(Exception $e) {
-			$that->PrintMessage("ERROR: {$e->getMessge()}");
+			$that::Message("ERROR: {$e->getMessge()}");
 			return $e->getCode()+100;
 		}
 	}
@@ -147,22 +147,22 @@ $cli->SetHandler('create',function($that){
 	}
 
 	if(!$dir) {
-		$that->PrintMessage("ERROR: no project file specified.");
+		$that::Message("ERROR: no project file specified.");
 		return 1;
 	}
 
 	if(!file_exists($dir) && !$that->MakeDirectory($dir)) {
-		$that->PrintMessage("ERROR: unable to create project directory.");
+		$that::Message("ERROR: unable to create project directory.");
 		return 2;
 	}
 
 	if(file_exists($dir) && !is_writable($dir)) {
-		$that->PrintMessage("ERROR: unable to write in project directory.");
+		$that::Message("ERROR: unable to write in project directory.");
 		return 3;
 	}
 
 	if(file_exists("{$dir}/{$filename}")) {
-		$that->PrintMessage("ERROR: project file already exists.");
+		$that::Message("ERROR: project file already exists.");
 		return 4;
 	}
 
@@ -175,13 +175,13 @@ $cli->SetHandler('create',function($that){
 	if(count($dirs) && $dirs[0]) $project->Directories = $dirs;
 	if(count($exts) && $exts[0]) $project->Extensions = $exts;
 
-	$that->PrintMessage(">> creating project {$filename}...");
+	$that::Message(">> creating project {$filename}...");
 	echo $project;
 
-	$that->PrintMessage(">> bootstrapping project directory...");
+	$that::Message(">> bootstrapping project directory...");
 	$project->Bootstrap();
 
-	$that->PrintMessage(">> saving project...");
+	$that::Message(">> saving project...");
 	$project->Save();
 
 	return 0;
@@ -196,17 +196,17 @@ $cli->SetHandler('update',function($that){
 	if(is_dir($file))
 	$file = trim($file,'\\/') . DIRECTORY_SEPARATOR . 'onescript.json';
 
-	$that->PrintMessage(">> opening project {$file}...");
+	$that::Message(">> opening project {$file}...");
 	try { $project = Nether\OneScript\Project::FromFile($file); }
 	catch(Exception $e) {
-		$that->PrintMessage("ERROR: {$e->getMessage()}");
+		$that::Message("ERROR: {$e->getMessage()}");
 		return $e->getCode()+100;
 	}
 
-	$that->PrintMessage(">> saving project {$file}...");
+	$that::Message(">> saving project {$file}...");
 	try { $project->Save(); }
 	catch(Exception $e) {
-		$that->PrintMessage("ERROR: {$e->getMessage()}");
+		$that::Message("ERROR: {$e->getMessage()}");
 		return $e->getCode()+100;
 	}
 
