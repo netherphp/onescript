@@ -282,6 +282,10 @@ class Project {
 	compile the files down to the final form.
 	//*/
 
+		if($this->Print) {
+			header('Content-type: application/json');
+		}
+
 		$ds = DIRECTORY_SEPARATOR;
 		$source = '';
 		$filelist = $this->FindTheFiles();
@@ -314,7 +318,6 @@ class Project {
 		}
 
 		if($this->Print) {
-			header('Content-type: application/json');
 			echo $source, PHP_EOL;
 		}
 
