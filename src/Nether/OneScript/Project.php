@@ -90,6 +90,11 @@ class Project {
 	if you so choose.
 	//*/
 
+	public $ContentType = 'text/javascript';
+	/*//
+	the content type to serve as if using print mode.
+	//*/
+
 	////////////////////////////////
 	////////////////////////////////
 
@@ -283,7 +288,7 @@ class Project {
 	//*/
 
 		if($this->Print) {
-			header('Content-type: application/json');
+			header("Content-type: {$this->ContentType}");
 		}
 
 		$ds = DIRECTORY_SEPARATOR;
