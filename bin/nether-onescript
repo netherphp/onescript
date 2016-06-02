@@ -11,8 +11,8 @@ $cli = new Nether\Console\Client;
 ////////
 ////////
 
-$cli->SetHandler('help',function($that){
-	$that::Messages(
+$cli->SetHandler('help',function(){
+	$this::Messages(
 		'Nether OneScript Tool',
 		str_repeat('=',75),
 		'',
@@ -57,66 +57,66 @@ $cli->SetHandler('help',function($that){
 ////////////////////////////////
 ////////////////////////////////
 
-$cli->SetHandler('build',function($that){
+$cli->SetHandler('build',function(){
 
 	$ds = DIRECTORY_SEPARATOR;
-	$file = $that->GetInput(2);
+	$file = $this->GetInput(2);
 	if(is_dir($file)) $file .= "{$ds}onescript.json";
 
-	$deploy = $that->GetOption('deploy');
-	$copy = $that->GetOption('copy');
+	$deploy = $this->GetOption('deploy');
+	$copy = $this->GetOption('copy');
 
 	foreach([$deploy,$copy] as $cpdir) {
 		if(!$cpdir) continue;
 
-		$that::Message(">> preparing {$cpdir}...");
+		$this::Message(">> preparing {$cpdir}...");
 
 		if(is_file($cpdir)) {
-			$that::Message("ERROR: specified deploy dir is currently a file.");
+			$this::Message("ERROR: specified deploy dir is currently a file.");
 			return 1;
 		}
 
 		if(is_dir($cpdir) && !is_writable($cpdir)) {
-			$that::Message("ERROR: unable to write to deploy dir");
+			$this::Message("ERROR: unable to write to deploy dir");
 			return 2;
 		}
 
 		if(!file_exists($cpdir)) {
 			if(!Nether\OneScript\Project::MakeDirectory($cpdir)) {
-				$that::Message("ERROR: unable to create deploy dir");
+				$this::Message("ERROR: unable to create deploy dir");
 				return 3;
 			}
 		}
 	} unset($cpdir);
 
-	$that::Message(">> opening {$file}...");
+	$this::Message(">> opening {$file}...");
 	try { $project = Nether\OneScript\Project::FromFile($file); }
 	catch(Exception $e) {
-		$that::Message("ERROR: {$e->getMessge()}");
+		$this::Message("ERROR: {$e->getMessge()}");
 		return $e->getCode()+100;
 	}
 
-	$that::Message(">> building {$project->OutputFile}...");
+	$this::Message(">> building {$project->OutputFile}...");
 	try { $project->Build(); }
 	catch(Exception $e) {
-		$that::Message("ERROR: {$e->getMessage()}");
+		$this::Message("ERROR: {$e->getMessage()}");
 		return $e->getCode()+100;
 	}
 
 	if($deploy) {
-		$that::Message(">> deploying to {$deploy}...");
+		$this::Message(">> deploying to {$deploy}...");
 		try { $project->Deploy($deploy); }
 		catch(Exception $e) {
-			$that::Message("ERROR: {$e->getMessge()}");
+			$this::Message("ERROR: {$e->getMessge()}");
 			return $e->getCode()+100;
 		}
 	}
 
 	if($copy) {
-		$that::Message(">> copying to {$copy}...");
+		$this::Message(">> copying to {$copy}...");
 		try { $project->Copy($copy); }
 		catch(Exception $e) {
-			$that::Message("ERROR: {$e->getMessge()}");
+			$this::Message("ERROR: {$e->getMessge()}");
 			return $e->getCode()+100;
 		}
 	}
@@ -127,15 +127,15 @@ $cli->SetHandler('build',function($that){
 ////////////////////////////////
 ////////////////////////////////
 
-$cli->SetHandler('create',function($that){
+$cli->SetHandler('create',function(){
 
-	$dir = $that->GetInput(2);
-	$filename = ($that->GetOption('filename'))?:('onescript.json');
-	$files = explode(',',$that->GetOption('files'));
-	$dirs = explode(',',$that->GetOption('dirs'));
-	$exts = explode(',',$that->GetOption('extensions'));
-	$outfile = $that->GetOption('outfile');
-	$minfile = $that->GetOption('minfile');
+	$dir = $this->GetInput(2);
+	$filename = ($this->GetOption('filename'))?:('onescript.json');
+	$files = explode(',',$this->GetOption('files'));
+	$dirs = explode(',',$this->GetOption('dirs'));
+	$exts = explode(',',$this->GetOption('extensions'));
+	$outfile = $this->GetOption('outfile');
+	$minfile = $this->GetOption('minfile');
 
 	// generate a min filename from the outfile for conviencne.
 	if(!$minfile && $outfile) {
@@ -147,22 +147,22 @@ $cli->SetHandler('create',function($that){
 	}
 
 	if(!$dir) {
-		$that::Message("ERROR: no project file specified.");
+		$this::Message("ERROR: no project file specified.");
 		return 1;
 	}
 
-	if(!file_exists($dir) && !$that->MakeDirectory($dir)) {
-		$that::Message("ERROR: unable to create project directory.");
+	if(!file_exists($dir) && !$this->MakeDirectory($dir)) {
+		$this::Message("ERROR: unable to create project directory.");
 		return 2;
 	}
 
 	if(file_exists($dir) && !is_writable($dir)) {
-		$that::Message("ERROR: unable to write in project directory.");
+		$this::Message("ERROR: unable to write in project directory.");
 		return 3;
 	}
 
 	if(file_exists("{$dir}/{$filename}")) {
-		$that::Message("ERROR: project file already exists.");
+		$this::Message("ERROR: project file already exists.");
 		return 4;
 	}
 
@@ -175,13 +175,13 @@ $cli->SetHandler('create',function($that){
 	if(count($dirs) && $dirs[0]) $project->Directories = $dirs;
 	if(count($exts) && $exts[0]) $project->Extensions = $exts;
 
-	$that::Message(">> creating project {$filename}...");
+	$this::Message(">> creating project {$filename}...");
 	echo $project;
 
-	$that::Message(">> bootstrapping project directory...");
+	$this::Message(">> bootstrapping project directory...");
 	$project->Bootstrap();
 
-	$that::Message(">> saving project...");
+	$this::Message(">> saving project...");
 	$project->Save();
 
 	return 0;
@@ -190,23 +190,23 @@ $cli->SetHandler('create',function($that){
 ////////////////////////////////
 ////////////////////////////////
 
-$cli->SetHandler('update',function($that){
-	$file = $that->GetInput(2);
+$cli->SetHandler('update',function(){
+	$file = $this->GetInput(2);
 
 	if(is_dir($file))
 	$file = trim($file,'\\/') . DIRECTORY_SEPARATOR . 'onescript.json';
 
-	$that::Message(">> opening project {$file}...");
+	$this::Message(">> opening project {$file}...");
 	try { $project = Nether\OneScript\Project::FromFile($file); }
 	catch(Exception $e) {
-		$that::Message("ERROR: {$e->getMessage()}");
+		$this::Message("ERROR: {$e->getMessage()}");
 		return $e->getCode()+100;
 	}
 
-	$that::Message(">> saving project {$file}...");
+	$this::Message(">> saving project {$file}...");
 	try { $project->Save(); }
 	catch(Exception $e) {
-		$that::Message("ERROR: {$e->getMessage()}");
+		$this::Message("ERROR: {$e->getMessage()}");
 		return $e->getCode()+100;
 	}
 
