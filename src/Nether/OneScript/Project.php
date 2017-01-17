@@ -261,21 +261,27 @@ class Project {
 	that we want to automatically append to the end of the build.
 	//*/
 
-		$output = [];
-		$ds = DIRECTORY_SEPARATOR;
+		$Output = [];
+		$DS = DIRECTORY_SEPARATOR;
+		$Path = '';
 
-		foreach($this->Directories as $dir) {
-			$finder = new Nether\OneScript\FileFinder(
-				"{$this->InputDir}{$ds}src{$ds}{$dir}",
+		foreach($this->Directories as $Item) {
+			$Dir = "{$this->InputDir}{$DS}src{$DS}{$Item}";
+
+			if(!is_dir($Dir))
+			continue;
+
+			$Finder = new Nether\OneScript\FileFinder(
+				$Dir,
 				$this->Extensions
 			);
 
-			foreach($finder as $info)
-			$output[] = $info->GetPathname();
+			foreach($Finder as $Info)
+			$Output[] = $Info->GetPathname();
 		}
 
-		sort($output);
-		return $output;
+		sort($Output);
+		return $Output;
 	}
 
 	////////////////////////////////
