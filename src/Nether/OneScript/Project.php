@@ -159,7 +159,7 @@ class Project {
 	build a project from the input data.
 	//*/
 
-		$config = new Nether\Object(
+		$config = new Nether\Object\Mapped(
 			$config,
 			$this->GetPublicProperties(),
 			['DefaultKeysOnly']
