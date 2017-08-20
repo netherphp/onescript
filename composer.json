@@ -10,7 +10,7 @@
 		  "role":"developer" }
 	],
 	"require": {
-		"netherphp/object": "~2.0",
+		"netherphp/object": "~3.0",
 		"netherphp/console": "~2.0"
 	},
 	"autoload": {
