@@ -209,6 +209,26 @@ class Project {
 		return $output;
 	}
 
+	public function
+	GetFullContentType() {
+	/*//
+	@date 2017-11-08
+	fetch the expanded content type as http will expect to se eit.
+	//*/
+
+		switch($this->ContentType) {
+			case 'css':
+			case 'stylesheet':
+			return 'text/css';
+
+			case 'js':
+			case 'javascript':
+			return 'text/javascript';
+		}
+
+		return $this->ContentType;
+	}
+
 	////////////////////////////////
 	////////////////////////////////
 
@@ -294,7 +314,10 @@ class Project {
 	//*/
 
 		if($this->Print) {
-			header("Content-type: {$this->ContentType}");
+			header(sprintf(
+				"Content-type: %s",
+				$this->GetFullContentType()
+			));
 		}
 
 		$ds = DIRECTORY_SEPARATOR;
@@ -405,19 +428,58 @@ class Project {
 	}
 
 	protected function
-	AppendFileHeader($filename,&$buffer) {
+	AppendFileHeader($Filename,&$Buffer) {
 	/*//
 	//*/
 
-		$filename = trim(str_replace(
-			$this->InputDir,'',
-			$filename
+		switch($this->GetFullContentType()) {
+			case 'text/css':
+			$this->AppendFileHeader_ForCSS($Filename,$Buffer);
+			break;
+
+			case 'text/javascript':
+			$this->AppendFileHeader_ForJavascript($Filename,$Buffer);
+			break;
+		}
+
+		return;
+	}
+
+	protected function
+	AppendFileHeader_ForCSS($Filename,&$Buffer) {
+	/*//
+	@date 2017-11-08
+	//*/
+
+		$Filename = trim(str_replace(
+			$this->InputDir, '',
+			$Filename
 		),'\\/');
 
-		$buffer .= str_repeat('/',75).PHP_EOL;
-		$buffer .= "// {$filename} ";
-		$buffer .= str_repeat('/',(71-strlen($filename)));
-		$buffer .= PHP_EOL.PHP_EOL;
+		$Buffer .= '/*';
+		$Buffer .= str_repeat('/',73).PHP_EOL;
+		$Buffer .= "// {$Filename} ";
+		$Buffer .= str_repeat('/',(69-strlen($Filename)));
+		$Buffer .= '*/'.PHP_EOL.PHP_EOL;
+
+		return;
+	}
+
+	protected function
+	AppendFileHeader_ForJavascript($Filename,&$Buffer) {
+	/*//
+	@date 2017-11-08
+	//*/
+
+		$Filename = trim(str_replace(
+			$this->InputDir, '',
+			$Filename
+		),'\\/');
+
+		$Buffer .= str_repeat('/',75).PHP_EOL;
+		$Buffer .= "// {$Filename} ";
+		$Buffer .= str_repeat('/',(71-strlen($Filename)));
+		$Buffer .= PHP_EOL.PHP_EOL;
 
 		return;
 	}
