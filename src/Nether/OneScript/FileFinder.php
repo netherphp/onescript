@@ -1,11 +1,13 @@
 <?php
 
 namespace Nether\OneScript;
-use \Nether;
+
+use \Nether as Nether;
 
 use \Exception;
 use \FilterIterator;
 use \FilesystemIterator;
+use \EmptyIterator;
 
 class FileFinder extends FilterIterator {
 /*//
@@ -24,20 +26,24 @@ will be unable to resist falling in love with me now.
 	////////////////////////////////
 
 	public function
-	__construct($directory, $extensions=[]) {
+	__construct($Directory, $Extensions=[]) {
 	/*//
 	@override
 	//*/
 
+		if(is_dir($Directory) && is_readable($Directory))
 		parent::__construct(new FilesystemIterator(
-			$directory,
+			$Directory,
 			(FilesystemIterator::SKIP_DOTS | FilesystemIterator::CURRENT_AS_FILEINFO)
 		));
 
+		else
+		parent::__construct(new EmptyIterator);
+
 		// if given some extensions, flip them to generate a hash lookup
 		// table instead.
-		if(is_array($extensions))
-		$this->Exts = array_flip($extensions);
+		if(is_array($Extensions))
+		$this->Exts = array_flip($Extensions);
 
 		return;
 	}
@@ -50,7 +56,7 @@ will be unable to resist falling in love with me now.
 	/*//
 	@override
 	//*/
-	
+
 		// provide a way for me to reuse this to accept all files. then
 		// i can reuse this is a recursive copy.
 		if($this->Exts === null)
