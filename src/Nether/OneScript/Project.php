@@ -95,6 +95,11 @@ class Project {
 	the content type to serve as if using print mode.
 	//*/
 
+	public $Updated = FALSE;
+	/*//
+	if an updated file was written to disk.
+	//*/
+
 	////////////////////////////////
 	////////////////////////////////
 
@@ -339,7 +344,7 @@ class Project {
 		$this->AppendFile($filepath,$source);
 
 		if($this->OutputFile) {
-			if(!$this->WriteToDisk($outfile,$source)) {
+			if(!($this->Updated = $this->WriteToDisk($outfile,$source))) {
 				echo $this->GetComment(
 					$this->Print,
 					"INFO: output was unchanged with this build.",
