@@ -286,9 +286,9 @@ class Project {
 	that we want to automatically append to the end of the build.
 	//*/
 
-		$Output = [];
 		$DS = DIRECTORY_SEPARATOR;
-		$Path = '';
+		$Grouped = [];
+		$Item = NULL;
 
 		foreach($this->Directories as $Item) {
 			$Dir = "{$this->InputDir}{$DS}src{$DS}{$Item}";
@@ -296,17 +296,16 @@ class Project {
 			if(!is_dir($Dir))
 			continue;
 
-			$Finder = new Nether\OneScript\FileFinder(
-				$Dir,
-				$this->Extensions
-			);
+			$Finder = new FileFinder($Dir,$this->Extensions);
+			$Grouped[$Item] = [];
 
 			foreach($Finder as $Info)
-			$Output[] = $Info->GetPathname();
+			$Grouped[$Item][] = $Info->GetPathname();
+
+			sort($Grouped[$Item]);
 		}
 
-		sort($Output);
-		return $Output;
+		return array_merge(...array_values($Grouped));
 	}
 
 	////////////////////////////////
