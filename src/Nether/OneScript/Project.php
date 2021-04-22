@@ -1,38 +1,39 @@
 <?php
 
 namespace Nether\OneScript;
-use \Nether;
+use Nether;
 
-use \Exception;
-use \ReflectionProperty;
+use Exception;
+use ReflectionProperty;
 
 class Project {
 
-	const ErrorFileUnreadable = 1;
-	const ErrorFileUnwritable = 2;
-	const ErrorFileInvalid = 3;
+	const
+	ErrorFileUnreadable = 1,
+	ErrorFileUnwritable = 2,
+	ErrorFileInvalid    = 3;
 
 	////////////////////////////////
 	////////////////////////////////
 
-	public $Files = [];
+	public array
+	$Files = [];
 	/*//
-	@type array[string, ...]
 	these are the files which will be appended to the output first. this is
 	because maybe they are important for the module files to have their core
 	framework loaded, and whatnot - fifo.
 	//*/
 
-	public $Directories = ['libs'];
+	public array
+	$Directories = ['libs'];
 	/*//
-	@type array[string, ...]
 	the directories in the project root for which we will search for
 	additional files to append to the output.
 	//*/
 
-	public $Extensions = ['js'];
+	public array
+	$Extensions = ['js'];
 	/*//
-	@type array[string, ...]
 	the file extensions we will use to filter files by when searching for
 	additional files to append to the output.
 	//*/
@@ -40,62 +41,68 @@ class Project {
 	////////
 	////////
 
-	public $OutputFile = 'onescript.js';
+	public string
+	$OutputFile = 'onescript.js';
 	/*//
-	@type string
 	the filename to save the compiled script as.
 	//*/
 
-	public $OutputMinFile = 'onescript.min.js';
+	public string
+	$OutputMinFile = 'onescript.min.js';
 	/*//
-	@type string
 	the filename to save the minified compiled script as.
 	//*/
 
 	////////
 	////////
 
-	public $Print = false;
+	public bool
+	$Print = FALSE;
 	/*//
-	@type bool
-	if true the output of the compiled file will be sent out to stdout. this
-	is for if you are using a live .js.php type file thing on your dev to
-	automatically recompile every save.
+	if true the output of the compiled file will be sent out to stdout.
+	this is for if you are using a live .js.php type file thing on your
+	dev to automatically recompile every save.
 	//*/
 
-	public $Minify = false;
+	public bool
+	$Minify = FALSE;
 	/*//
 	if true the output of the compiled file will be run through the minify
 	tool from https://www.npmjs.com/package/minifier and saved written to
 	disk as the $OutputMinFile.
 	//*/
 
-	public $AddScriptHeader = true;
+	public bool
+	$AddScriptHeader = TRUE;
 	/*//
 	if true it will waste bytes outputting a header at the top of the build
 	file that describes the build.
 	//*/
 
-	public $AddFileHeader = true;
+	public bool
+	$AddFileHeader = TRUE;
 	/*//
 	if true it will waste bytes outputting a header that separates each file
 	from eachother. this of course will be stripped out in the minified
 	version.
 	//*/
 
-	public $DistDir = 'dist';
+	public string
+	$DistDir = 'dist';
 	/*//
-	the directory compiled files will be stored into. this is the distribution
-	directory, the goal is you can copy or symlink that into your public web
-	if you so choose.
+	the directory compiled files will be stored into. this is the
+	distribution directory, the goal is you can copy or symlink that into
+	your public web if you so choose.
 	//*/
 
-	public $ContentType = 'text/javascript';
+	public string
+	$ContentType = 'text/javascript';
 	/*//
 	the content type to serve as if using print mode.
 	//*/
 
-	public $Updated = FALSE;
+	public bool
+	$Updated = FALSE;
 	/*//
 	if an updated file was written to disk.
 	//*/
@@ -103,7 +110,8 @@ class Project {
 	////////////////////////////////
 	////////////////////////////////
 
-	protected $ProjectFile;
+	protected string
+	$ProjectFile;
 	/*//
 	@type string
 	//*/
@@ -119,19 +127,19 @@ class Project {
 	}
 
 	public function
-	SetProjectFile($p) {
+	SetProjectFile(string $Filename) {
 	/*//
 	set the project file and generate input/output directories based on it
 	if they were not yet set.
 	//*/
 
-		$this->ProjectFile = basename($p);
+		$this->ProjectFile = basename($Filename);
 
 		if(!$this->InputDir)
-		$this->InputDir = dirname($p);
+		$this->InputDir = dirname($Filename);
 
 		if(!$this->OutputDir)
-		$this->OutputDir = dirname($p);
+		$this->OutputDir = dirname($Filename);
 
 		return $this;
 	}
@@ -139,48 +147,86 @@ class Project {
 	////////////////////////////////
 	////////////////////////////////
 
-	protected $InputDir;
+	protected ?string
+	$InputDir = NULL;
 
 	public function
-	GetInputDir() { return $this->InputDir; }
+	GetInputDir():
+	?string {
+	/*//
+	@date 2015-08-07
+	//*/
+
+		return $this->InputDir;
+	}
 
 	public function
-	SetInputDir($d) { $this->InputDir = $d; return $this; }
+	SetInputDir(string $Dir):
+	static {
+	/*//
+	@date 2015-08-07
+	//*/
 
-	protected $OutputDir;
+		$this->InputDir = $Dir;
+		return $this;
+	}
+
+	protected ?string
+	$OutputDir = NULL;
 
 	public function
-	GetOutputDir() { return $this->OutputDir; }
+	GetOutputDir():
+	?string {
+	/*//
+	@date 2015-08-07
+	//*/
+
+		return $this->OutputDir;
+	}
 
 	public function
-	SetOutputDir($d) { $this->OutputDir = $d; return $this; }
+	SetOutputDir(string $Dir):
+	static {
+	/*//
+	@date 2015-08-07
+	//*/
+
+		$this->OutputDir = $Dir;
+		return $this;
+	}
 
 	////////////////////////////////
 	////////////////////////////////
 
 	public function
-	__construct($config=null) {
+	__Construct($Config=NULL) {
 	/*//
 	build a project from the input data.
 	//*/
 
-		$config = new Nether\Object\Mapped(
-			$config,
+		$Prop = NULL;
+		$Val = NULL;
+
+		$Config = new Nether\Object\Mapped(
+			$Config,
 			$this->GetPublicProperties(),
 			['DefaultKeysOnly']
 		);
 
-		foreach($config as $prop => $val)
-		$this->{$prop} = $val;
+		foreach($Config as $Prop => $Val)
+		$this->{$Prop} = $Val;
 
 		// default to javascript.
-		if($this->Print === true) $this->Print = 'js';
+
+		if($this->Print === TRUE)
+		$this->Print = 'js';
 
 		return;
 	}
 
 	public function
-	__toString() {
+	__ToString():
+	string {
 	/*//
 	@return string
 	asking for the project in a string context is going to give you a json
@@ -197,25 +243,29 @@ class Project {
 	////////////////////////////////
 
 	public function
-	GetPublicProperties() {
+	GetPublicProperties():
+	array {
 	/*//
-	@return array
 	fetch the properties i have decided are safe to write to disk without
 	privacy issues. e.g. all publics on this class.
 	//*/
 
-		$output = [];
-		foreach($this as $prop => $val) {
-			$ref = new ReflectionProperty(static::class,$prop);
-			if($ref->isPublic()) $output[$prop] = $val;
+		$Prop = NULL;
+		$Val = NULL;
+		$Output = [];
+
+		foreach($this as $Prop => $Val) {
+			$Ref = new ReflectionProperty(static::class,$Prop);
+			if($Ref->IsPublic()) $Output[$Prop] = $Val;
 		}
 
-		ksort($output);
-		return $output;
+		ksort($Output);
+		return $Output;
 	}
 
 	public function
-	GetFullContentType() {
+	GetFullContentType():
+	string {
 	/*//
 	@date 2017-11-08
 	fetch the expanded content type as http will expect to se eit.
@@ -238,9 +288,9 @@ class Project {
 	////////////////////////////////
 
 	public function
-	FindTheFiles() {
+	FindTheFiles():
+	array {
 	/*//
-	@return array
 	search the project for all the files that need to be compiled down
 	into the final build.
 	//*/
@@ -252,36 +302,37 @@ class Project {
 	}
 
 	protected function
-	FindTheFiles_Main() {
+	FindTheFiles_Main():
+	array {
 	/*//
-	@return array
 	check the main files that were specified in the project and make sure
 	that they exist. returns an array with the full file paths (relative to
 	how the app needs to care) to all the files when verified.
 	//*/
 
-		$output = [];
-		$ds = DIRECTORY_SEPARATOR;
+		$Filename = NULL;
+		$Output = [];
+		$DS = DIRECTORY_SEPARATOR;
 
-		foreach($this->Files as $filename) {
-			$filepath = "{$this->InputDir}{$ds}src{$ds}{$filename}";
+		foreach($this->Files as $Filename) {
+			$Filepath = "{$this->InputDir}{$DS}src{$DS}{$Filename}";
 
-			if(!file_exists($filepath))
+			if(!file_exists($Filepath))
 			throw new Exception(
-				"file src{$ds}{$filename} not found",
+				"file src{$DS}{$Filename} not found",
 				static::ErrorFileUnreadable
 			);
 
-			$output[] = $filepath;
+			$Output[] = $Filepath;
 		}
 
-		return $output;
+		return $Output;
 	}
 
 	protected function
-	FindTheFiles_Libs() {
+	FindTheFiles_Libs():
+	array {
 	/*//
-	@return array
 	check all the optional module folders for files that match the extension
 	that we want to automatically append to the end of the build.
 	//*/
@@ -312,52 +363,52 @@ class Project {
 	////////////////////////////////
 
 	public function
-	Build() {
+	Build():
+	static {
 	/*//
 	compile the files down to the final form.
 	//*/
 
-		if($this->Print) {
-			header(sprintf(
-				"Content-type: %s",
-				$this->GetFullContentType()
-			));
-		}
-
-		$ds = DIRECTORY_SEPARATOR;
-		$source = '';
-		$filelist = $this->FindTheFiles();
-		$outfile = sprintf(
-			"%s{$ds}%s{$ds}%s",
+		$Filepath = NULL;
+		$DS = DIRECTORY_SEPARATOR;
+		$Source = '';
+		$Filelist = $this->FindTheFiles();
+		$Outfile = sprintf(
+			"%s{$DS}%s{$DS}%s",
 			$this->OutputDir,
 			$this->DistDir,
 			$this->OutputFile
 		);
 
-		if($this->AddScriptHeader) $this->AppendScriptHeader(
-			$filelist,
-			$source
+		if($this->Print)
+		header(sprintf(
+			"Content-type: %s",
+			$this->GetFullContentType()
+		));
+
+		if($this->AddScriptHeader)
+		$this->AppendScriptHeader(
+			$Filelist,
+			$Source
 		);
 
-		foreach($filelist as $filepath)
-		$this->AppendFile($filepath,$source);
+		foreach($Filelist as $Filepath)
+		$this->AppendFile($Filepath,$Source);
 
-		if($this->OutputFile) {
-			if(!($this->Updated = $this->WriteToDisk($outfile,$source))) {
-				echo $this->GetComment(
-					$this->Print,
-					"INFO: output was unchanged with this build.",
-					$source
-				);
+		if($this->OutputFile)
+		if(!($this->Updated = $this->WriteToDisk($Outfile,$Source))) {
+			echo $this->GetComment(
+				$this->Print,
+				"INFO: output was unchanged with this build.",
+				$Source
+			);
 
-				if($this->Print)
-				echo PHP_EOL;
-			}
+			if($this->Print)
+			echo PHP_EOL;
 		}
 
-		if($this->Print) {
-			echo $source, PHP_EOL;
-		}
+		if($this->Print)
+		echo $Source, PHP_EOL;
 
 		return $this;
 	}
@@ -366,21 +417,25 @@ class Project {
 	////////////////////////////////
 
 	public function
-	Copy($dest) {
+	Copy(string $Dest):
+	static {
 	/*//
+	@date 2015-08-07
 	//*/
 
 		static::CopyDir(
 			$this->OutputDir,
-			$dest
+			$Dest
 		);
 
 		return $this;
 	}
 
 	public function
-	Deploy($dest) {
+	Deploy(string $Dest):
+	static {
 	/*//
+	@date 2015-08-07
 	//*/
 
 		static::CopyDir(
@@ -390,7 +445,7 @@ class Project {
 				DIRECTORY_SEPARATOR,
 				$this->DistDir
 			),
-			$dest
+			$Dest
 		);
 
 		return $this;
@@ -400,39 +455,43 @@ class Project {
 	////////////////////////////////
 
 	protected function
-	GetComment($lang,$text) {
+	GetComment(string $Lang, string $Text):
+	string {
 	/*//
 	//*/
 
-		if($lang) switch($lang) {
+		if($Lang) switch($Lang) {
 			case 'c':
 			case 'css':
 			case 'js':
 			case 'php':
 			case 'standard': {
-				return "/* {$text} */".PHP_EOL;
+				return sprintf('\/* %s */%s',$Text,PHP_EOL);
 			}
 		}
 
-		else return $text.PHP_EOL;
+		return sprintf('%s%s',$Text,PHP_EOL);
 	}
 
 	protected function
-	AppendFile($filename,&$buffer) {
+	AppendFile(string $Filename, string &$Buffer):
+	static {
 	/*//
 	append the specified file to the end of the source buffer.
 	optionally adds the file header if enabled.
 	//*/
 
 		if($this->AddFileHeader)
-		$this->AppendFileHeader($filename,$buffer);
+		$this->AppendFileHeader($Filename,$Buffer);
 
-		$this->AppendFileContents($filename,$buffer);
-		return;
+		$this->AppendFileContents($Filename,$Buffer);
+
+		return $this;
 	}
 
 	protected function
-	AppendFileHeader($Filename,&$Buffer) {
+	AppendFileHeader(string $Filename, string &$Buffer):
+	static {
 	/*//
 	//*/
 
@@ -446,11 +505,12 @@ class Project {
 			break;
 		}
 
-		return;
+		return $this;
 	}
 
 	protected function
-	AppendFileHeader_ForCSS($Filename,&$Buffer) {
+	AppendFileHeader_ForCSS(string $Filename, string &$Buffer):
+	static {
 	/*//
 	@date 2017-11-08
 	//*/
@@ -466,11 +526,12 @@ class Project {
 		$Buffer .= str_repeat('/',(69-strlen($Filename)));
 		$Buffer .= '*/'.PHP_EOL.PHP_EOL;
 
-		return;
+		return $this;
 	}
 
 	protected function
-	AppendFileHeader_ForJavascript($Filename,&$Buffer) {
+	AppendFileHeader_ForJavascript(string $Filename, string &$Buffer):
+	static {
 	/*//
 	@date 2017-11-08
 	//*/
@@ -485,89 +546,103 @@ class Project {
 		$Buffer .= str_repeat('/',(71-strlen($Filename)));
 		$Buffer .= PHP_EOL.PHP_EOL;
 
-		return;
+		return $this;
 	}
 
 	protected function
-	AppendFileContents($filename,&$buffer) {
+	AppendFileContents(string $Filename, string &$Buffer):
+	static {
 	/*//
 	//*/
 
-		$buffer .= trim(file_get_contents($filename));
-		$buffer .= PHP_EOL.PHP_EOL;
+		$Buffer .= trim(file_get_contents($Filename));
+		$Buffer .= PHP_EOL.PHP_EOL;
 
-		return;
+		return $this;
 	}
 
 	protected function
-	AppendScriptHeader($files,&$buffer) {
+	AppendScriptHeader(array $Files, string &$Buffer):
+	static {
 	/*//
 	//*/
 
-		foreach($files as &$file)
-		$file = trim(str_replace(
+		$File = NULL;
+
+		foreach($Files as &$File)
+		$File = trim(str_replace(
 			$this->InputDir,'',
-			$file
+			$File
 		),'\\/');
 
-		$buffer .= '/*// nether-onescript //'.PHP_EOL;
-		$buffer .= '@date '.date('Y-m-d H:i:s').PHP_EOL;
-		$buffer .= '@files '.json_encode($files,JSON_PRETTY_PRINT).PHP_EOL;
-		$buffer .= '//*/'.PHP_EOL.PHP_EOL;
-		return;
+		$Buffer .= '/*// nether-onescript //'.PHP_EOL;
+		$Buffer .= '@date '.date('Y-m-d H:i:s').PHP_EOL;
+		$Buffer .= '@files '.json_encode($Files,JSON_PRETTY_PRINT).PHP_EOL;
+		$Buffer .= '//*/'.PHP_EOL.PHP_EOL;
+
+		return $this;
 	}
 
 	////////////////////////////////
 	////////////////////////////////
 
 	public function
-	ShouldWriteToDisk($filename,$source) {
+	ShouldWriteToDisk(string $Filename, string $Source):
+	bool {
 	/*//
 	//*/
 
-		if(!file_exists($filename))
-		return true;
+		if(!file_exists($Filename))
+		return TRUE;
 
-		$old = md5(static::StripScriptHeader(file_get_contents($filename)));
-		$new = md5(static::StripScriptHeader($source));
+		$Old = md5(static::StripScriptHeader(file_get_contents($Filename)));
+		$New = md5(static::StripScriptHeader($Source));
 
-		if($old !== $new) return true;
-		else return false;
+		if($Old !== $New)
+		return TRUE;
+
+		return FALSE;
 	}
 
 	public function
-	WriteToDisk($filename,$source) {
+	WriteToDisk(string $Filename, string $Source):
+	bool {
 	/*//
 	//*/
 
-		if(!$this->ShouldWriteToDisk($filename,$source))
-		return false;
+		if(!$this->ShouldWriteToDisk($Filename,$Source))
+		return FALSE;
 
-		if(!file_exists($filename)) {
-			if(!static::MakeDirectory(dirname($filename)))
-			throw new Exception(
-				'unable to create directory for output file.',
-				static::ErrorFileUnwritable
-			);
-		}
+		if(!file_exists($Filename))
+		if(!static::MakeDirectory(dirname($Filename)))
+		throw new Exception(
+			'unable to create directory for output file.',
+			static::ErrorFileUnwritable
+		);
 
-		if(file_exists($filename) && !is_writable($filename))
+		if(file_exists($Filename) && !is_writable($Filename))
 		throw new Exception(
 			'unable to write to output file.',
 			static::ErrorFileUnwritable
 		);
 
-		file_put_contents($filename,$source);
-		return true;
+		file_put_contents($Filename,$Source);
+		return TRUE;
 	}
 
 	////////////////////////////////
 	////////////////////////////////
 
 	public function
-	Bootstrap() {
+	Bootstrap():
+	static {
 	/*//
+	@date 2015-08-07
 	//*/
+
+		$LibDir = NULL;
+		$MainFile = NULL;
+		$DS = DIRECTORY_SEPARATOR;
 
 		if(!$this->ProjectFile)
 		throw new Exception('no project file set');
@@ -579,26 +654,24 @@ class Project {
 		throw new Exception('no input direcetory set.');
 
 		////////
-		////////
-
-		$ds = DIRECTORY_SEPARATOR;
 
 		// make main source directory.
-		static::MakeDirectory("{$this->InputDir}{$ds}src");
+		static::MakeDirectory("{$this->InputDir}{$DS}src");
 
 		// make module directories.
-		foreach($this->Directories as $libdir)
-		static::MakeDirectory("{$this->InputDir}{$ds}src{$ds}{$libdir}");
+		foreach($this->Directories as $LibDir)
+		static::MakeDirectory("{$this->InputDir}{$DS}src{$DS}{$LibDir}");
 
 		// make blank mainfiles.
-		foreach($this->Files as $mainfile)
-		touch("{$this->InputDir}{$ds}src{$ds}{$mainfile}");
+		foreach($this->Files as $MainFile)
+		touch("{$this->InputDir}{$DS}src{$DS}{$MainFile}");
 
 		return $this;
 	}
 
 	public function
-	Save() {
+	Save():
+	static {
 	/*//
 	@return self
 	save the project json file to disk.
@@ -607,22 +680,22 @@ class Project {
 		if(!$this->OutputDir)
 		throw new Exception('no output dir set');
 
-		$ds = DIRECTORY_SEPARATOR;
-		$file = "{$this->InputDir}{$ds}{$this->ProjectFile}";
+		$DS = DIRECTORY_SEPARATOR;
+		$File = "{$this->InputDir}{$DS}{$this->ProjectFile}";
 
-		if(!file_exists($file) && !is_writable(dirname($file)))
+		if(!file_exists($File) && !is_writable(dirname($File)))
 		throw new Exception(
 			'unable to write to project directory',
 			static::ErrorFileUnwritable
 		);
 
-		if(file_exists($file) && !is_writable($file))
+		if(file_exists($File) && !is_writable($File))
 		throw new Exception(
 			'unable to write to project file',
 			static::ErrorFileUnwritable
 		);
 
-		file_put_contents($file,"{$this}");
+		file_put_contents($File,"{$this}");
 		return $this;
 	}
 
@@ -630,72 +703,80 @@ class Project {
 	////////////////////////////////
 
 	static public function
-	FromFile($file) {
+	FromFile(string $File):
+	static {
 	/*//
 	return Nether\OneScript\Project
 	read a project file from disk.
 	//*/
 
-		if(!file_exists($file) && is_readable($file))
+		if(!file_exists($File) && is_readable($File))
 		throw new Exception(
 			'file not found or unreadable',
 			static::ErrorFileUnreadable
 		);
 
-		$input = json_decode(file_get_contents($file));
+		$Input = json_decode(file_get_contents($File));
 
-		if(!$input || !is_object($input))
+		if(!$Input || !is_object($Input))
 		throw new Exception(
 			'file appears to be invalid',
 			static::ErrorFileInvalid
 		);
 
-		$project = (new static($input))
-		->SetProjectFile($file);
+		$Project = (
+			(new static($Input))
+			->SetProjectFile($File)
+		);
 
-		return $project;
+		return $Project;
 	}
 
 	static public function
-	MakeDirectory($dir) {
+	MakeDirectory(string $Dir):
+	bool {
 	/*//
 	@return bool
 	make a directory. returns if successful or not. allows you to
 	blindly call it if it already exists to ensure it exists.
 	//*/
 
-		if(is_dir($dir))
-		return true;
+		if(is_dir($Dir))
+		return TRUE;
 
-		$umask = umask(0);
-		@mkdir($dir,0777,true);
-		umask($umask);
+		$Umask = umask(0);
+		@mkdir($Dir,0777,TRUE);
+		umask($Umask);
 
-		return is_dir($dir);
+		return is_dir($Dir);
 	}
 
 	static public function
-	CopyDir($source,$dest) {
+	CopyDir(string $Source, string $Dest):
+	void {
 	/*//
 	do a recursive copy of a directory.
 	it will not copy over the .git folder.
 	//*/
 
-		foreach(new Nether\OneScript\FileFinder($source,null) as $cur) {
-			if(is_dir($cur->GetPathname())) {
-				if($cur->GetFilename() === '.git') continue;
+		$Cur = NULL;
+		$Finder = new Nether\OneScript\FileFinder($Source,NULL);
 
-				if(!static::MakeDirectory("{$dest}/{$cur->GetFilename()}"))
+		foreach($Finder as $Cur) {
+			if(is_dir($Cur->GetPathname())) {
+				if($Cur->GetFilename() === '.git') continue;
+
+				if(!static::MakeDirectory("{$Dest}/{$Cur->GetFilename()}"))
 				throw new Exception("unable create new directory in destination.");
 
 				static::CopyDir(
-					$cur->GetPathname(),
-					"{$dest}/{$cur->GetFilename()}"
+					$Cur->GetPathname(),
+					"{$Dest}/{$Cur->GetFilename()}"
 				);
 			}
 
-			elseif(is_file($cur->GetPathname())) {
-				copy($cur->GetPathname(),"{$dest}/{$cur->GetFilename()}");
+			elseif(is_file($Cur->GetPathname())) {
+				copy($Cur->GetPathname(),"{$Dest}/{$Cur->GetFilename()}");
 			}
 		}
 
@@ -703,10 +784,15 @@ class Project {
 	}
 
 	static public function
-	StripScriptHeader($source) {
+	StripScriptHeader($Source) {
+	/*//
+	@date 2015-08-07
+	//*/
+
 		return preg_replace(
 			'#/*// nether-onescript //(.+?)//*/#ms',
-			'', $source
+			'',
+			$Source
 		);
 	}
 
