@@ -397,12 +397,6 @@ class Project {
 
 		if($this->OutputFile)
 		if(!($this->Updated = $this->WriteToDisk($Outfile,$Source))) {
-			echo $this->GetComment(
-				$this->Print,
-				"INFO: output was unchanged with this build.",
-				$Source
-			);
-
 			if($this->Print)
 			echo PHP_EOL;
 		}
